@@ -1,0 +1,14 @@
+<template name="nutritionNumbers">
+  <view class="nutrition-summary"><text>约 {{values.energyKcal}} 千卡</text><text>克重 {{values.weightGrams}} 克</text></view>
+  <view class="nutrition-macros"><text>蛋白质 {{values.proteinGrams}} 克</text><text>脂肪 {{values.fatGrams}} 克</text><text>碳水 {{values.carbGrams}} 克</text></view>
+</template>
+<template name="recipeMeals">
+  <view wx:for="{{meals}}" wx:key="slot" class="recipe-meal">
+    <view class="recipe-heading"><text>{{item.label}}</text><text class="small muted">{{item.recorded?'已记录实际饮食':''}}</text></view>
+    <view class="task-title">{{item.title || '等待生成食谱'}}</view>
+    <view wx:for="{{item.foods}}" wx:for-item="food" wx:key="name" class="recipe-food"><text>{{food.name}}</text><text>{{food.weightGrams}} 克 <text class="muted">{{food.portion}}</text></text></view>
+    <view wx:if="{{!item.foods.length}}" class="muted">{{item.reference || '生成后显示食物、建议份量与简要做法。'}}</view>
+    <view wx:if="{{item.preparation}}" class="fine">{{item.preparation}}</view>
+    <view wx:if="{{item.display}}" class="fine">估算 {{item.display.energyKcal}} 千卡 · 蛋白质 {{item.display.proteinGrams}} 克 · 脂肪 {{item.display.fatGrams}} 克 · 碳水 {{item.display.carbGrams}} 克</view>
+  </view>
+</template>

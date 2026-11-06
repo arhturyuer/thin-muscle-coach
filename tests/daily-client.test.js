@@ -1,0 +1,197 @@
+const {test,beforeEach,afterEach}=require('node:test'),assert=require('node:assert/strict');
+const {loadPage}=require('./fixtures/mini-runtime');
+const b=require('../server/business'),d=require('../shared/domain');
+let backend,store,originalTimer;
+const path='/miniprogram/';
+beforeEach(()=>{
+  for(const p of Object.keys(require.cache))if(p.includes(path))delete require.cache[p];
+  const storage=new Map();originalTimer=global.setTimeout;global.setTimeout=(fn,ms)=>{const t=originalTimer(fn,ms);t.unref();return t;};
+  global.wx={getStorageSync:k=>storage.get(k),setStorageSync:(k,v)=>storage.set(k,structuredClone(v)),removeStorageSync:k=>storage.delete(k),getAccountInfoSync:()=>({miniProgram:{envVersion:'release'}}),showToast:async()=>{},showModal:async()=>({confirm:true}),requirePrivacyAuthorize:async()=>{},hideKeyboard(){},navigateTo(){},switchTab(){}};
+  const date=d.localDate();backend=b.fresh();const plan=d.makePlan({age:28,goal:'habit',experience:'beginner',minutes:30,equipment:'none',screening:'clear',consent:true});plan.nutrition={meals:['早餐：鸡蛋与主食','午餐：米饭与蔬菜','晚餐：主食与蛋白质食物']};
+  backend.entitlement={id:'paid-plan',version:1,status:'active',credential:'test',startDate:date,expiresAt:Date.now()+d.DAY*7,plan};backend.orders=[{id:'paid-plan',status:'paid',startDate:date,plan}];
+  const runtime={cloud:{getWXContext:()=>({OPENID:'owner'})},transact:async(id,fn)=>fn(backend)};
+  wx.cloud={callFunction:async({data})=>{let result;if(data.action==='sync.batch')result={results:b.applyBatch(backend,data.operations),state:b.publicState(backend)};else if(data.action.startsWith('day.'))result=await require('../server/daily-adjustments').handle(data,runtime);else throw new Error('unexpected '+data.action);return {result:{code:0,stage:'prod',data:structuredClone(result)}};}};
+  store=require('../miniprogram/core/store');store.identify('owner');store.save({...structuredClone(b.publicState(backend)),config:{cloudEnv:'test',mealRecognitionEnabled:true}});
+});
+afterEach(()=>{global.setTimeout=originalTimer;delete global.wx;delete global.Page;for(const p of Object.keys(require.cache))if(p.includes(path))delete require.cache[p];});
+function today(){const page=loadPage('today');page.onShow();return page;}
+test('today records one recipe in one action, asks before replacing, and undo restores the prior meal',async()=>{const page=today(),slot=page.data.focusMeal.slot,key=require('../shared/daily').mealKey('paid-plan',d.localDate(),slot);await page.recordRecipe();assert.ok(store.get().records[key].value.text);assert.equal(store.get().records[`daily:paid-plan:${d.localDate()}`],undefined);await page.recordRecipe();assert.ok(page.data.recordPrompt);await page.resolveRecord({currentTarget:{dataset:{mode:'append'}}});assert.match(store.get().records[key].value.text,/；/);await page.undoActivity({currentTarget:{dataset:{key}}});assert.equal(store.get().records[key].value.text,page.data.focusMeal.suggestion);page.onHide();});
+test('mixed input saves food once, offers a proposal, and adoption drives the actual workout task',async()=>{const page=today();page.setData({composerText:'午饭吃了面，晚上只有十五分钟'});await page.sendDaily();const key=`meal:paid-plan:${d.localDate()}:lunch`;assert.equal(store.get().records[key].value.text,'吃了面');assert.equal(page.data.dayProposal.minutes,15);assert.equal(store.get().entitlement.plan.minutes,30);await page.adoptProposal();assert.equal(page.data.dashboard.plan.minutes,15);await require('../miniprogram/services/coach').start();assert.equal(store.get().session.task.title,page.data.dashboard.task.title);assert.ok(store.get().session.adjustmentId);page.onHide();});
+test('unspecified food is recorded only after inline meal selection including snack',async()=>{const page=today();page.setData({composerText:'吃了一个苹果'});await page.sendDaily();assert.equal(page.data.recordPrompt.needsSlot,true);assert.equal(Object.values(store.get().records).filter(x=>x.kind==='meal').length,0);await page.assignSlot({currentTarget:{dataset:{slot:'snack'}}});assert.equal(store.get().records[`meal:paid-plan:${d.localDate()}:snack`].value.text,'吃了一个苹果');page.onHide();});
+test('offline meals save locally; new adjustments stay pending and retry never duplicates food',async()=>{store.save({online:false});const page=today();page.setData({composerText:'午饭吃了面，今天只有十五分钟'});await page.sendDaily();assert.equal(store.get().records[`meal:paid-plan:${d.localDate()}:lunch`].value.text,'吃了面');assert.ok(store.get().dailyInputPending);store.save({online:true});await page.sendDaily();assert.equal(Object.values(store.get().records).filter(x=>x.kind==='meal').length,1);assert.equal(page.data.dayProposal.minutes,15);assert.equal(store.get().dailyInputPending,null);page.onHide();});
+test('new meal records remain visible in history and do not become completed nutrition tasks',()=>{const service=require('../miniprogram/services/daily');service.saveMeal({slot:'snack',text:'苹果',source:'text'});const vm=require('../miniprogram/services/coach').snapshot();const model=require('../miniprogram/services/dashboard');const calendar=model.calendar(vm,vm.date);assert.equal(calendar.hasRecords,true);assert.equal(calendar.logs[0].snack,'苹果');assert.equal(calendar.view.nutritionDone,false);assert.equal(model.growth(vm).weeks[3].recorded,1);});
+test('active training prevents workout adoption but does not block food proposals',async()=>{const daily=require('../miniprogram/services/daily');await require('../miniprogram/services/coach').start();const p=await daily.propose({target:'workout',mode:'light'});await assert.rejects(daily.adopt(p),/结束或中断/);const meal=await daily.propose({target:'lunch',mode:'outside'});await daily.adopt(meal);assert.equal(store.get().session.task.exercises.length,4);});
+test('training feedback can be skipped without inventing an okay rating',async()=>{const coach=require('../miniprogram/services/coach');await coach.start();store.save({session:{...store.get().session,exercise:4,completedSets:12}});await coach.finish(null,false);assert.equal(store.get().records['session:paid-plan:0'].value.difficulty,'unknown');});
+const mealFood={name:'米饭',portion:'熟重',confidence:'medium',weightGrams:100,energyKcal:120,proteinGrams:3,fatGrams:0,carbGrams:27};
+const tap=dataset=>({currentTarget:{dataset}});
+const type=(value,dataset={})=>({...tap(dataset),detail:{value}});
+function selectPhoto(){
+  wx.requirePrivacyAuthorize=options=>options.success();
+  wx.chooseMedia=async()=>({tempFiles:[{tempFilePath:'/tmp/meal.jpg'}]});
+  wx.saveFile=async()=>({savedFilePath:'/local/meal.jpg'});
+}
+function wireResultPage(source){
+  const state={};
+  wx.navigateTo=({url,success,events})=>{
+    assert.equal(url,'/pages/meal-result/index');
+    state.progress=source.data.photoProgress;
+    source.onHide();
+    const result=loadPage('meal-result'),channel=new (require('node:events').EventEmitter)();
+    channel.on('mealSaved',events.mealSaved);
+    result.getOpenerEventChannel=()=>channel;
+    result.onLoad();
+    success({eventChannel:channel});
+    result.onShow();
+    state.result=result;
+  };
+  wx.navigateBack=({success})=>{state.result.onUnload();source.onShow();success?.();};
+  return state;
+}
+test('selection starts real recognition without an AI modal and opens the result before saving',async()=>{
+  selectPhoto();
+  store.save({config:{mealRecognitionEnabled:true}});
+  const source=today(), navigation=wireResultPage(source);
+  let modalCount=0,submitCount=0;
+  wx.showModal=async()=>{modalCount++;return {confirm:true};};
+  wx.getImageInfo=async()=>({width:2400,height:1600});
+  wx.compressImage=async()=>{
+    assert.equal(source.data.photoProgress,'preparing');
+    return {tempFilePath:'/tmp/compressed.jpg'};
+  };
+  wx.getFileSystemManager=()=>({readFile:options=>options.success({data:'/9j/4AECAwQ='})});
+  require('../miniprogram/services/api').call=async(action,data)=>{
+    assert.equal(source.data.photoProgress,'recognizing');
+    assert.equal(action,'meal.recognize');
+    assert.equal(data.consent,true);
+    submitCount++;
+    return {title:'午餐',foods:[mealFood]};
+  };
+  await source.takeDailyPhoto();
+  assert.equal(submitCount,1);
+  assert.equal(modalCount,0);
+  assert.equal(navigation.progress,'finishing');
+  assert.equal(source.data.photoProgress,'');
+  const result=navigation.result;
+  assert.equal(result.data.draft.src,'/local/meal.jpg');
+  assert.equal(result.data.totals.energyKcal,'120');
+  assert.equal(Object.values(store.get().records).filter(x=>x.kind==='meal').length,0);
+  result.selectSlot(tap({slot:'lunch'}));
+  await result.savePhoto();
+  const meal=store.get().records[`meal:paid-plan:${d.localDate()}:lunch`].value;
+  assert.equal(meal.source,'photo');
+  assert.equal(store.get().records[meal.analysisIds[0]].value.analysis.consumed.energyKcal,120);
+  assert.equal(source.data.lastSaved.label,'午餐');
+  source.onHide();
+});
+test('recognition failure keeps the photo and allows a text record without another AI call',async()=>{
+  selectPhoto();
+  let calls=0;
+  require('../miniprogram/services/meal-ai').recognize=async()=>{calls++;throw new Error('识别次数已用完');};
+  const source=today(),navigation=wireResultPage(source);
+  await source.takeDailyPhoto();
+  assert.equal(source.data.photoProgress,'failed');
+  assert.match(source.data.photoError,/识别次数/);
+  await source.manualPhoto();
+  const result=navigation.result;
+  assert.equal(result.data.draft.src,'/local/meal.jpg');
+  result.selectSlot(tap({slot:'snack'}));
+  result.manualInput(type('一根香蕉'));
+  await result.savePhoto();
+  assert.equal(calls,1);
+  assert.equal(store.get().records[`meal:paid-plan:${d.localDate()}:snack`].value.text,'一根香蕉');
+  source.onHide();
+});
+test('meal result keeps the draft when a conflict prompt is cancelled, then appends on confirmation',async()=>{
+  selectPhoto();
+  require('../miniprogram/services/meal-ai').recognize=async()=>({foods:[mealFood]});
+  const daily=require('../miniprogram/services/daily');
+  daily.saveMeal({slot:'lunch',text:'鸡蛋',source:'text'});
+  const source=today(),navigation=wireResultPage(source);
+  await source.takeDailyPhoto();
+  const result=navigation.result,key=`meal:paid-plan:${d.localDate()}:lunch`;
+  result.selectSlot(tap({slot:'lunch'}));
+  wx.showActionSheet=async()=>{throw {errMsg:'showActionSheet:fail cancel'};};
+  await result.savePhoto();
+  assert.equal(store.get().records[key].value.text,'鸡蛋');
+  assert.equal(result.data.draft.analysis.title,'米饭');
+  wx.showActionSheet=async()=>({tapIndex:0});
+  await result.savePhoto();
+  assert.match(store.get().records[key].value.text,/^鸡蛋；米饭/);
+  source.onHide();
+});
+test('editing, adding and removing foods recomputes the actual portion totals',async()=>{
+  selectPhoto();
+  require('../miniprogram/services/meal-ai').recognize=async()=>({foods:[mealFood]});
+  const source=today(),navigation=wireResultPage(source);
+  await source.takeDailyPhoto();
+  const result=navigation.result;
+  result.editFood(tap({index:0}));
+  result.foodValueInput(type('5',{key:'weightGrams'}));
+  result.foodValueInput(type('50',{key:'weightGrams'}));
+  result.commitFood();
+  assert.deepEqual(result.data.totals,{weightGrams:'50',energyKcal:'60',proteinGrams:'1.5',fatGrams:'0',carbGrams:'13.5'});
+  result.selectFraction(tap({value:.5}));
+  assert.equal(result.data.totals.energyKcal,'30');
+  result.editFood(tap({}));
+  result.foodNameInput(type('青菜'));
+  result.foodValueInput(type('30',{key:'weightGrams'}));
+  result.commitFood();
+  assert.equal(result.data.totals.weightGrams,'40');
+  assert.equal(result.data.totals.proteinGrams,'待确认');
+  await result.removeFood(tap({index:1}));
+  assert.equal(result.data.totals.proteinGrams,'0.8');
+  result.onUnload();
+});
+test('cancelling selection or hiding the page during recognition never opens a result',async()=>{
+  selectPhoto();
+  const choose=wx.chooseMedia;
+  wx.chooseMedia=async()=>{throw {errMsg:'chooseMedia:fail cancel'};};
+  const source=today();
+  let calls=0,resolve;
+  require('../miniprogram/services/meal-ai').recognize=()=>{calls++;return new Promise(r=>{resolve=r;});};
+  const navigation=wireResultPage(source);
+  await source.takeDailyPhoto();
+  assert.equal(calls,0);
+  assert.equal(navigation.result,undefined);
+  wx.chooseMedia=choose;
+  const analysis=source.takeDailyPhoto();
+  await new Promise(setImmediate);
+  assert.equal(calls,1);
+  source.onHide();
+  resolve({foods:[mealFood]});
+  await analysis;
+  assert.equal(navigation.result,undefined);
+  assert.equal(source.data.photoProgress,'');
+});
+test('a lost adoption response retries the same server operation and never applies twice',async()=>{const daily=require('../miniprogram/services/daily'),p=await daily.propose({target:'workout',mode:'short',minutes:15});const call=wx.cloud.callFunction;let lost=true;wx.cloud.callFunction=async args=>{const result=await call(args);if(args.data.action==='day.adopt'&&lost){lost=false;throw new Error('network');}return result;};await assert.rejects(daily.adopt(p));assert.ok(store.get().dayPending);await daily.retry();assert.equal(store.get().dayPending,null);const row=store.get().records[`override:paid-plan:${d.localDate()}:workout`];assert.equal(row.version,1);});
+test('day change or plan change prevents an old record prompt from being saved',async()=>{const page=today();page.setData({composerText:'吃了苹果'});await page.sendDaily();page._recordQueue[0].ticket.date='2020-01-01';await page.assignSlot({currentTarget:{dataset:{slot:'snack'}}});assert.equal(Object.values(store.get().records).filter(x=>x.kind==='meal').length,0);page.onHide();});
+test('weekly feedback drafts resume later and do not leak into a different plan week',()=>{const page=loadPage('progress');page.onShow();page.reviewChange({currentTarget:{dataset:{key:'hunger'}},detail:{value:'high'}});assert.equal(store.get().reviewDrafts['paid-plan'].hunger,'high');page.onHide();const reopened=loadPage('progress');reopened.onShow();assert.equal(reopened.data.review.hunger,'high');store.save({entitlement:{...store.get().entitlement,id:'next-week'}});assert.equal(reopened.data.review.hunger,undefined);reopened.onHide();});
+test('camera and album are separate one-tap entrypoints with explicit media sources',async()=>{wx.requirePrivacyAuthorize=options=>options.success();const sources=[];wx.chooseMedia=async o=>{sources.push(o.sourceType);return {tempFiles:[{tempFilePath:'/tmp/a.jpg'}]};};wx.saveFile=async()=>({savedFilePath:'/local/a.jpg'});require('../miniprogram/services/meal-ai').recognize=async()=>null;const page=today();await page.takeDailyPhoto();await page.importDietPhoto();assert.deepEqual(sources,[['camera'],['album']]);page.onHide();});
+test('confirmed photo nutrition survives sync, uses the consumed fraction and undo removes its habit reference',async()=>{const n=require('../miniprogram/shared/nutrition'),analysis=n.normalizeAnalysis({title:'米饭',consumedFraction:.5,foods:[{name:'米饭',portion:'一碗',confidence:'medium',weightGrams:150,energyKcal:180,proteinGrams:4,fatGrams:1,carbGrams:39}]});const daily=require('../miniprogram/services/daily'),key=`meal:paid-plan:${d.localDate()}:lunch`;daily.saveMeal({slot:'lunch',text:'米饭',source:'photo',analysis},'new',{requestId:'photo-nutrients'});let record=store.get().records[key];assert.equal(record.value.analysisIds.length,1);const id=record.value.analysisIds[0];assert.equal(store.get().records[id].value.analysis.consumed.energyKcal,90);await require('../miniprogram/services/syncService').flush();assert.equal(backend.records[id].value.analysis.consumed.weightGrams,75);assert.equal(backend.records[key].value.analysisIds[0],id);daily.undoMeal(key);assert.equal(store.get().records[key].value.analysisIds.length,0);assert.equal(store.get().records[key].value.text,'');});
+test('retrying a failed analysis reuses the original picture and request ticket without opening the camera',async()=>{
+ wx.requirePrivacyAuthorize=o=>o.success();let chooses=0,attempts=0;wx.chooseMedia=async()=>{chooses++;return {tempFiles:[{tempFilePath:'/tmp/food.jpg'}]};};wx.saveFile=async()=>({savedFilePath:'/local/food.jpg'});
+ const tickets=[];require('../miniprogram/services/meal-ai').recognize=async(src,ticket)=>{tickets.push({src,...ticket});if(++attempts===1)throw new Error('图片分析服务暂不可用');return {foods:[mealFood]};};
+ const page=today(),navigation=wireResultPage(page);await page.takeDailyPhoto();assert.match(page.data.photoError,/服务暂不可用/);await page.retryDailyPhoto();assert.equal(chooses,1);assert.deepEqual(tickets[0],tickets[1]);assert.equal(navigation.result.data.draft.analysis.foods[0].name,'米饭');navigation.result.onUnload();
+});
+test('transport retries recover status and reuse identical compressed bytes without a consent modal',async()=>{
+ store.save({config:{mealRecognitionEnabled:true}});wx.requirePrivacyAuthorize=o=>o.success();let consent=0,compress=0,calls=0;const images=[];
+ wx.getImageInfo=async()=>({width:2400,height:1600});
+ wx.showModal=async()=>{consent++;return {confirm:true};};wx.compressImage=async()=>{compress++;return {tempFilePath:'/tmp/compressed.jpg'};};wx.getFileSystemManager=()=>({readFile:o=>o.success({data:'/9j/4AECAwQ='})});
+ wx.cloud.callFunction=async({data})=>{if(data.action==='meal.status')return {result:{code:0,stage:'prod',data:{status:'failed'}}};images.push(data.image);if(++calls===1)return {result:{code:'AI_UNAVAILABLE',stage:'prod',message:'model unavailable'}};return {result:{code:0,stage:'prod',data:{foods:[],text:''}}};};
+ const service=require('../miniprogram/services/meal-ai'),ticket={requestId:'same-photo-ticket',date:d.localDate()};await assert.rejects(service.recognize('/local/food.jpg',ticket));const stages=[];await service.recognize('/local/food.jpg',ticket,{onProgress:stage=>stages.push(stage)});assert.deepEqual(stages,['recovering','recognizing']);assert.equal(consent,0);assert.equal(compress,1);assert.equal(images[0],images[1]);
+});
+
+test('mixed text and photo intake stays incomplete through append, replacement and undo',()=>{
+ const daily=require('../miniprogram/services/daily'),n=require('../miniprogram/shared/nutrition');
+ const analysis=n.normalizeAnalysis({title:'米饭',consumedFraction:.5,foods:[{name:'米饭',portion:'一碗',confidence:'medium',weightGrams:150,energyKcal:180,proteinGrams:4,fatGrams:1,carbGrams:39}]});
+ daily.saveMeal({slot:'lunch',text:'一碗汤',source:'text'});
+ daily.saveMeal({slot:'lunch',text:'米饭',source:'photo',analysis},'append',{requestId:'coverage-photo'});
+ const key=`meal:paid-plan:${d.localDate()}:lunch`;
+ assert.equal(store.get().records[key].value.nutritionIncomplete,true);
+ daily.saveMeal({slot:'lunch',text:'米饭',source:'photo',analysis},'replace',{requestId:'coverage-replace'});
+ assert.equal(store.get().records[key].value.nutritionIncomplete,false);
+ daily.undoMeal(key);assert.equal(store.get().records[key].value.nutritionIncomplete,true);
+ daily.undoMeal(key);assert.equal(store.get().records[key].value.nutritionIncomplete,false);
+ daily.saveMeal({slot:'lunch',text:'额外饮料',source:'text'},'append');
+ assert.equal(store.get().records[key].value.nutritionIncomplete,true);
+});

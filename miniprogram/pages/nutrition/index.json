@@ -1,0 +1,4 @@
+{
+  "navigationBarTitleText": "饮食计划",
+  "usingComponents": {"week-calendar": "/components/week-calendar/index"}
+}

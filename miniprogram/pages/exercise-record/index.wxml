@@ -1,0 +1,47 @@
+<view class="screen {{info.canRecord && !info.day.rest ? 'workout-with-action' : ''}}">
+  <view class="eyebrow">{{date}} · 记录运动</view>
+  <view wx:if="{{error}}" class="notice">{{error}}</view>
+  <block wx:if="{{loaded && info.canRecord && !info.day.rest}}">
+    <view class="task-title">{{recordDay.title}}</view>
+    <view class="body-copy">勾选实际完成的组，可按实际训练调整组数。</view>
+    <view wx:for="{{recordDay.exercises}}" wx:key="id" id="record-{{item.id}}" class="hero record-exercise {{moveId===item.id?'record-focused':''}}">
+      <view class="task-title">{{item.order}}. {{item.name}}</view>
+      <view class="muted">计划 {{item.prescription}}</view>
+      <view class="record-sets-toolbar">
+        <text>组数 {{rows[index].setDetails.length}}</text>
+        <view class="record-set-controls">
+          <button class="record-set-button" data-index="{{index}}" bindtap="removeSet" disabled="{{busy || !rows[index].setDetails.length}}" aria-label="减少{{item.name}}一组">−</button>
+          <button class="record-set-button" data-index="{{index}}" bindtap="addSet" disabled="{{busy || rows[index].setDetails.length >= maxSets}}" aria-label="增加{{item.name}}一组">+</button>
+        </view>
+      </view>
+      <block wx:if="{{rows[index].setDetails.length}}">
+        <view class="record-set-row record-set-head">
+          <text>组</text>
+          <text>重量（千克）</text>
+          <text>{{item.mode==='time'?'时长（秒）':'次数'}}</text>
+          <text>完成</text>
+        </view>
+        <view wx:for="{{rows[index].setDetails}}" wx:for-item="set" wx:for-index="setIndex" wx:key="number" class="record-set-row">
+          <text>{{set.number}}</text>
+          <input type="digit" placeholder="—" value="{{set.weightKg}}" disabled="{{busy}}" data-index="{{index}}" data-set-index="{{setIndex}}" data-field="weightKg" bindinput="setInput" aria-label="{{item.name}}第{{set.number}}组重量（千克）"/>
+          <input wx:if="{{item.mode==='time'}}" type="number" placeholder="—" value="{{set.seconds}}" disabled="{{busy}}" data-index="{{index}}" data-set-index="{{setIndex}}" data-field="seconds" bindinput="setInput" aria-label="{{item.name}}第{{set.number}}组时长（秒）"/>
+          <input wx:else type="number" placeholder="—" value="{{set.reps}}" disabled="{{busy}}" data-index="{{index}}" data-set-index="{{setIndex}}" data-field="reps" bindinput="setInput" aria-label="{{item.name}}第{{set.number}}组次数"/>
+          <checkbox-group data-index="{{index}}" data-set-index="{{setIndex}}" bindchange="checkSet">
+            <label class="record-check"><checkbox value="done" checked="{{set.completed}}" disabled="{{busy}}" color="#173E32" aria-label="{{item.name}}第{{set.number}}组完成"/></label>
+          </checkbox-group>
+        </view>
+      </block>
+      <radio-group class="record-feelings" data-index="{{index}}" bindchange="difficulty">
+        <label><radio value="easy" checked="{{rows[index].difficulty==='easy'}}" disabled="{{busy}}" color="#173E32"/>轻松</label>
+        <label><radio value="okay" checked="{{rows[index].difficulty==='okay'}}" disabled="{{busy}}" color="#173E32"/>刚好</label>
+        <label><radio value="hard" checked="{{rows[index].difficulty==='hard'}}" disabled="{{busy}}" color="#173E32"/>吃力</label>
+      </radio-group>
+    </view>
+    <view class="task"><text class="grow">运动中有不适</text><switch checked="{{discomfort}}" disabled="{{busy}}" bindchange="discomfort" color="#173E32"/></view>
+    <view class="fine">离线时先保存在本机，联网后自动同步。</view>
+    <view class="workout-action-bar">
+      <button class="primary" bindtap="save" loading="{{busy}}" disabled="{{busy}}">完成运动</button>
+    </view>
+  </block>
+  <view wx:else class="empty">{{info.day && info.day.rest?'恢复日无需记录，请保持轻松活动。':info.day?'该日期的运动计划仅可查看':'这一天暂无可记录的运动计划'}}</view>
+</view>

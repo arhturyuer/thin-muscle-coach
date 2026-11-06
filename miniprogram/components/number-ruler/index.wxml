@@ -1,0 +1,14 @@
+<view class="number-ruler">
+ <view class="value-line">
+  <input class="number-input" type="{{integer?'number':'digit'}}" value="{{value}}" placeholder="点击输入" maxlength="8" disabled="{{disabled}}" adjust-position="{{false}}" bindinput="input" bindkeyboardheightchange="keyboard" aria-label="{{label}}，{{unit}}" />
+  <text class="unit">{{unit}}</text>
+  <button wx:if="{{optional && value !== ''}}" class="clear" bindtap="clear" disabled="{{disabled}}">清空</button>
+ </view>
+ <view class="ruler-wrap">
+  <scroll-view class="ruler-track" scroll-x scroll-left="{{scrollLeft}}" show-scrollbar="{{false}}" bounces="{{false}}" bindtouchstart="touch" bindtouchend="end" bindtouchcancel="end" bindscroll="scroll">
+   <view class="ruler-content"><view class="spacer" style="width:{{halfWidth}}px"/><view class="tick {{item.major?'major':''}}" wx:for="{{ticks}}" wx:key="value"><view class="mark"/><text>{{item.label}}</text></view><view class="spacer" style="width:{{halfWidth}}px"/></view>
+  </scroll-view>
+  <view class="indicator"/>
+ </view>
+ <view class="hint">左右滑动刻度，或点击数字输入{{optional?' · 可留空':''}}</view>
+</view>

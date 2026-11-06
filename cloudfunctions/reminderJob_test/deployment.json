@@ -1,0 +1,6 @@
+{
+  "name": "reminderJob_test",
+  "stage": "test",
+  "entry": "reminderJob",
+  "sourceVersion": "a3ff62d7c3da5233"
+}

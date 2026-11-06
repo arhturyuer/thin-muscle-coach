@@ -1,0 +1,43 @@
+<view wx:if="{{mealConsentOnly}}" class="screen">
+ <view class="title">每周自动生成食谱</view>
+ <view class="body-copy">有效会员同意后，腾讯云 CloudBase AI 会使用你的身体评测、饮食限制与偏好，以及近期已确认的饮食记录，生成每周三餐和营养估算。不会将餐照原图用于食谱生成。</view>
+ <navigator class="link" url="/pages/privacy/index">阅读隐私与数据说明</navigator>
+ <button class="primary" bindtap="acceptMealConsent" loading="{{busy}}" disabled="{{busy}}">同意自动生成</button>
+</view>
+<view wx:else class="assessment" style="bottom:{{keyboardHeight}}px">
+ <form class="assessment-form" bindsubmit="next">
+  <view class="assessment-layout">
+  <view class="assessment-header">
+   <view class="step-label">设计我的薄肌计划 · {{step}} / {{totalSteps}}</view>
+   <view class="assessment-title">{{title}}</view>
+   <progress percent="{{percent}}" stroke-width="3" activeColor="#57A885" backgroundColor="#DEE5D9"/>
+  </view>
+  <scroll-view class="assessment-content" scroll-y scroll-into-view="step-{{step}}" enhanced show-scrollbar="{{false}}">
+   <view class="content-inner" id="step-{{step}}">
+    <view wx:if="{{step===1}}" class="intro">了解你的身体基础、饮食习惯和训练条件，用于估算需求、生成计划并同步到账号。AI 指导会将必要的身体摘要、计划、近期记录和问题发送给 腾讯云 CloudBase AI，不发送昵称和头像。</view>
+    <view class="question" wx:for="{{fields}}" wx:key="key">
+     <view class="question-title">{{item.title}}</view>
+     <number-ruler wx:if="{{item.numeric}}" value="{{form[item.key]}}" min="{{item.numeric.min}}" max="{{item.numeric.max}}" reference="{{item.numeric.reference}}" integer="{{item.numeric.integer || false}}" optional="{{item.key==='waist'}}" unit="{{item.numeric.unit}}" label="{{item.title}}" disabled="{{busy}}" data-key="{{item.key}}" bindchange="change" bindkeyboardheightchange="keyboard"/>
+     <radio-group wx:elif="{{item.options.length}}" class="options {{item.key==='screening'?'vertical':''}}" data-key="{{item.key}}" bindchange="change">
+      <label wx:for="{{item.options}}" wx:for-item="option" wx:key="value" class="option {{form[item.key] == option.value?'selected':''}}"><radio value="{{option.value}}" checked="{{form[item.key] == option.value}}" disabled="{{busy}}" color="#173E32"/>{{option.label}}</label>
+     </radio-group>
+     <input wx:else class="text-input" type="{{item.key==='stepGoal'?'number':'text'}}" name="{{item.key}}" data-key="{{item.key}}" bindinput="change" value="{{form[item.key]}}" maxlength="200" placeholder="{{item.key==='stepGoal'?'1000–20000步':'没有请留空'}}" disabled="{{busy}}" adjust-position="{{false}}" bindkeyboardheightchange="keyboard"/>
+    </view>
+    <view wx:if="{{step===1}}" class="assessment-note">存在疼痛、疾病、孕哺期、受伤或医嘱限制时，请先获得专业指导。</view>
+    <view wx:if="{{step===7}}">
+     <view class="question-title">选择 {{form.frequency}} 个可训练日</view>
+     <view class="intro">已选 {{form.weekdays.length}} 天，按你的日常安排选择。</view>
+     <checkbox-group class="days" bindchange="weekdays"><label wx:for="{{selectedDays}}" wx:key="value" class="day {{item.checked?'selected':''}}"><checkbox value="{{item.value}}" checked="{{item.checked}}" disabled="{{busy}}" color="#173E32"/>{{item.label}}</label></checkbox-group>
+    </view>
+    <view wx:if="{{step===9}}" class="assessment-note">如有饮食禁忌，会保留限制并先展示餐食结构，未经核验不推荐具体食材。</view>
+    <view wx:if="{{error}}" class="assessment-error" role="alert">{{error}}</view>
+   </view>
+  </scroll-view>
+  <view class="assessment-footer {{keyboardHeight?'keyboard-open':''}}">
+   <view wx:if="{{step===1}}" class="consent-copy">点击继续即表示同意将健康信息用于生成、保存和同步个人计划。<text wx:if="{{vm.config.mealWeeksSupported}}">成为有效会员后，腾讯云 CloudBase AI 将使用评测、饮食偏好及近期已确认记录自动生成每周食谱，不使用餐照原图。</text><navigator url="/pages/privacy/index">阅读隐私与数据说明</navigator></view>
+   <view class="actions"><button wx:if="{{step>1}}" class="previous" bindtap="back" disabled="{{busy}}">上一步</button><button class="continue" form-type="submit" loading="{{busy}}" disabled="{{busy}}">{{step===9?'查看我的薄肌方案':'继续'}}</button></view>
+   <view wx:if="{{step>1 && !keyboardHeight}}" class="save-hint">进度自动保存，可随时返回</view>
+  </view>
+  </view>
+ </form>
+</view>

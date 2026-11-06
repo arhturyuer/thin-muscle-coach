@@ -1,0 +1,22 @@
+<view wx:if="{{photoProgress && calendar.isToday}}" class="meal-photo-shade" catchtouchmove="stopPhotoScroll">
+  <view class="meal-progress-panel">
+    <view class="meal-progress-title">{{photoProgress === 'failed' ? '识别未完成' : '正在识别饮食照片'}}</view>
+    <block wx:if="{{photoProgress !== 'failed'}}">
+      <view class="meal-progress-steps" aria-label="识别进度">
+        <view class="meal-progress-step is-active"><text>1</text><view>准备照片</view></view>
+        <view class="meal-progress-step {{photoProgress !== 'preparing' ? 'is-active' : ''}}"><text>2</text><view>识别食物</view></view>
+        <view class="meal-progress-step {{photoProgress === 'finishing' ? 'is-active' : ''}}"><text>3</text><view>整理结果</view></view>
+      </view>
+      <view class="meal-progress-status">
+        <view class="meal-progress-spinner" aria-hidden="true"/>
+        <text>{{photoProgress === 'preparing' ? '正在压缩照片' : photoProgress === 'recovering' ? '正在取回识别结果' : photoProgress === 'finishing' ? '正在整理食物与营养' : '正在分析食物、份量和营养'}}</text>
+      </view>
+    </block>
+    <block wx:else>
+      <view class="meal-progress-error">{{photoError}} 照片已保留。</view>
+      <button class="primary" bindtap="retryDailyPhoto" disabled="{{busy}}">重试这张照片</button>
+      <button class="secondary" bindtap="manualPhoto" disabled="{{busy}}">手动填写</button>
+      <button class="link" bindtap="closePhotoProgress" disabled="{{busy}}">稍后处理</button>
+    </block>
+  </view>
+</view>

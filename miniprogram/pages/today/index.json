@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "今日",
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "week-calendar": "/components/week-calendar/index"
+  }
+}

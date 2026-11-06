@@ -1,0 +1,13 @@
+{
+  "desc": "仅公开产品首页；评估、订单与个人记录不参与搜索索引。",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "pages/today/index"
+    },
+    {
+      "action": "disallow",
+      "page": "*"
+    }
+  ]
+}

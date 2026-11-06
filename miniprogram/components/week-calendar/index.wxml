@@ -1,0 +1,5 @@
+<swiper class="calendar-swiper" circular="{{true}}" current="{{slot}}" bindchange="change" duration="250" aria-label="周日历，左右滑动切换周">
+  <swiper-item wx:for="{{calendar.weeks}}" wx:key="id" wx:for-item="week">
+    <view class="calendar-week"><view wx:for="{{week.days}}" wx:key="date" class="calendar-day {{item.selected?'calendar-selected':''}}" data-date="{{item.date}}" bindtap="select" role="button" aria-label="{{item.date}} {{item.label}}" aria-pressed="{{item.selected}}"><text class="small">{{item.weekday}}</text><text class="calendar-number">{{item.number}}</text><text class="calendar-today">{{item.today?'今天':item.label}}</text></view></view>
+  </swiper-item>
+</swiper>

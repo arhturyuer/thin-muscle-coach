@@ -1,0 +1,9 @@
+<template name="energyRing">
+  <view class="energy-ring-face {{large?'energy-ring-large':''}}" style="background:conic-gradient({{color}} {{progress}}%, {{track}} 0);" role="img" aria-label="{{description || (label+'：'+(future?'尚未开始，目标':unknown?'':'已消耗')+value+(unknown?'':'千卡'))}}">
+    <view class="energy-ring-center">
+      <view wx:if="{{target}}" class="energy-ring-caption">目标 {{target}}</view>
+      <view class="energy-ring-value {{unknown?'energy-ring-status':''}}">{{future?'—':value}}</view>
+      <view wx:if="{{future || !unknown}}" class="energy-ring-unit">{{future?'尚未开始':'千卡'}}</view>
+    </view>
+  </view>
+</template>

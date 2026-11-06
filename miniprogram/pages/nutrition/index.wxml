@@ -1,0 +1,66 @@
+<import src="/templates/meal-plan.wxml"/>
+<import src="/templates/diet-day.wxml"/>
+<block wx:if="{{vm.config.mealWeeksSupported}}">
+  <view class="workout-calendar-fixed"><week-calendar calendar="{{calendar}}" slot="{{calendarSlot}}" bindselectdate="selectDate" bindweekchange="calendarChange"/></view>
+  <view class="screen workout-detail diet-detail">
+    <view class="workout-clipboard">
+      <view class="workout-clipboard-clip" aria-hidden="true"/>
+      <view class="workout-sheet">
+        <view class="workout-sheet-header">
+          <text class="workout-sheet-name">{{vm.profile.nickname}}</text><text class="workout-sheet-date">{{calendar.selected}} · 饮食计划</text>
+        </view>
+        <template is="dietDay" data="{{diet,dietPhotos,mealLoadError,isToday:calendar.isToday}}"/>
+        <template is="dietActions" data="{{diet,busy,hasDraft:vm.mealPhotoDraft}}"/>
+        <view wx:if="{{diet.canRecord}}" class="diet-text-actions">
+          <view class="small">手动记录</view>
+          <view wx:for="{{diet.rows}}" wx:key="slot" class="diet-line">
+            <button class="inline" data-slot="{{item.slot}}" bindtap="editDietText">{{item.recorded?'编辑':'记录'}}{{item.label}}</button>
+            <button wx:if="{{item.canUndo}}" class="inline" data-key="{{item.key}}" bindtap="undoDietMeal" disabled="{{busy}}">撤销本次更改</button>
+          </view>
+          <button wx:if="{{diet.rows.length===3}}" class="inline" data-slot="snack" bindtap="editDietText">记录加餐</button>
+          <view wx:if="{{dietEditing}}" class="diet-text-form">
+            <textarea value="{{dietEditing.text}}" bindinput="dietTextInput" maxlength="1000" placeholder="写下实际吃的食物"/>
+            <view wx:if="{{dietEditing.original}}" class="fine">替换为文字后，原营养和照片仍可通过撤销恢复。</view>
+            <button class="secondary" bindtap="saveDietText" disabled="{{busy}}">保存文字记录</button>
+            <button class="link" bindtap="closeDietText">取消</button>
+          </view>
+        </view>
+        <view wx:if="{{photos.length}}" class="diet-text-actions"><view class="small">以往保存在本机的照片</view>
+          <view class="meal-photos"><image wx:for="{{photos}}" wx:key="*this" src="{{item}}" data-src="{{item}}" mode="aspectFill" bindtap="previewPhoto" aria-label="查看本机饮食照片"/></view>
+        </view>
+      </view>
+    </view>
+  </view>
+</block>
+<block wx:else>
+<view class="screen">
+  <view class="eyebrow">{{calendar.selected}} · 饮食详情</view>
+  <view class="title">当日饮食食谱</view>
+  <view wx:if="{{detail.task}}" class="hero">
+    <view wx:if="{{detail.intake}}" class="energy-target"><view class="task-title">每日摄入目标 · {{detail.intake}} 千卡</view><view wx:if="{{detail.energy}}" class="fine">基础代谢估算 {{detail.energy.basalKcal}} 千卡/日</view></view><view wx:else class="fine">每日摄入目标尚未开放或需补充目标评测</view>
+    <view class="task-title">{{detail.task.nutrition}}</view>
+    <view class="body-copy">{{detail.plan.nutrition.scene}}</view>
+    <template is="recipeMeals" data="{{meals:plannedMeals}}"/>
+    <view wx:if="{{mealPlan}}"><view class="small">三餐建议量合计 · 估算</view><template is="nutritionNumbers" data="{{values:mealPlan.display}}"/><view class="fine">{{mealPlan.reason}}</view></view>
+  </view>
+  <view wx:else class="empty">这一天暂无已保存的食谱</view>
+  <view wx:if="{{!calendar.isToday}}" class="notice">仅查看当日食谱与记录，饮食请在当天记录。</view>
+  <view wx:elif="{{!detail.executable}}" class="notice">启动计划后即可记录饮食。</view>
+  <view class="section-title">拍照记录自己的饮食</view>
+  <view wx:if="{{calendar.isToday && detail.executable}}" class="daily-actions"><button class="primary" bindtap="takeDailyPhoto" disabled="{{busy}}">{{vm.config.mealRecognitionEnabled?'拍照识别':'拍照记录'}}</button><button class="secondary" bindtap="importDietPhoto" disabled="{{busy}}">{{vm.config.mealRecognitionEnabled?'相册识别':'相册导入'}}</button></view>
+  <view wx:if="{{calendar.isToday && detail.executable && vm.config.mealRecognitionEnabled}}" class="diet-hint">拍照或选图后，压缩照片会发送给腾讯云 CloudBase AI 分析。</view>
+  <view class="meal-photos"><view wx:for="{{photos}}" wx:key="*this"><image src="{{item}}" data-src="{{item}}" mode="aspectFill" bindtap="previewPhoto" aria-label="查看饮食照片"/><button wx:if="{{calendar.isToday && detail.executable && vm.config.mealRecognitionEnabled}}" size="mini" data-src="{{item}}" bindtap="takeDailyPhoto" disabled="{{busy}}">识别食物</button></view></view>
+  <view class="fine">照片原件保存在本机，当日最多 9 张。</view>
+  <view wx:for="{{activityRows}}" wx:key="key" wx:if="{{item.nutritionDisplay}}" class="hero"><view class="body-copy">{{item.text}}</view><template is="nutritionNumbers" data="{{values:item.nutritionDisplay}}"/><view class="fine">照片分析，按确认进食比例估算。</view></view>
+  <form bindsubmit="save">
+    <view class="section-title">饮食与生活记录</view>
+    <view class="task"><text class="grow">当日饮食任务</text><switch disabled="{{!detail.executable}}" color="#173E32" checked="{{form.nutrition}}" bindchange="toggle" name="nutrition" data-key="nutrition"/></view>
+    <view wx:if="{{detail.task.rest}}" class="task"><text class="grow">今天认真休息了</text><switch disabled="{{!detail.executable}}" color="#173E32" checked="{{form.recovery}}" bindchange="toggle" name="recovery" data-key="recovery"/></view>
+    <view class="field-label">早餐</view><textarea disabled="{{!detail.executable}}" maxlength="1000" auto-height="true" value="{{form.breakfast}}" name="breakfast" data-key="breakfast" bindinput="input" placeholder="吃了什么？感觉如何？"/>
+    <view class="field-label">午餐</view><textarea disabled="{{!detail.executable}}" maxlength="1000" auto-height="true" value="{{form.lunch}}" name="lunch" data-key="lunch" bindinput="input" placeholder="记下自己的饮食"/>
+    <view class="field-label">晚餐</view><textarea disabled="{{!detail.executable}}" maxlength="1000" auto-height="true" value="{{form.dinner}}" name="dinner" data-key="dinner" bindinput="input" placeholder="留给自己一点观察"/>
+    <button wx:if="{{detail.executable}}" class="primary" form-type="submit" loading="{{busy}}" disabled="{{busy}}">保存今天的记录</button>
+  </form>
+</view>
+</block>
+<include src="/templates/meal-photo-progress.wxml"/>

@@ -1,0 +1,10 @@
+{
+  "name": "boji-coach",
+  "private": true,
+  "scripts": {
+    "prepare:cloud": "node scripts/prepare-cloud.js",
+    "test": "node --test tests/*.test.js",
+    "check": "node scripts/check.js",
+    "release:check": "npm run check && node scripts/release-check.js"
+  }
+}

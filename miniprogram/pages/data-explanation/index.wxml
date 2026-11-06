@@ -1,0 +1,61 @@
+<view class="screen explanation-screen">
+  <view class="explanation-date">{{explanation.date}} · {{explanation.isToday?'今日数据':explanation.future?'计划数据':'当日数据'}}</view>
+  <view class="explanation-intro">看懂你的每一份能量</view>
+  <view class="explanation-copy">这里解释你所查看日期的个人数值，以及这些数值如何得到。热量均为产品估算，单位为千卡；不是设备测量。</view>
+
+  <view class="explanation-card">
+    <view class="explanation-heading">01 · 基础消耗</view>
+    <view class="explanation-number">{{explanation.basal}}<text wx:if="{{explanation.basalAvailable}}">千卡 / 天</text></view>
+    <view class="explanation-copy">这是基础代谢：身体在静息时，维持呼吸、体温等基本运转所需要的能量。</view>
+    <view class="explanation-inputs">计算依据：{{explanation.inputs}}</view>
+    <view class="explanation-formula">{{explanation.basalFormula}}</view>
+    <view class="explanation-copy">公式使用体重（千克）、身高（厘米）和年龄（岁），男性加 5，女性减 161。展示值取整，使用评测时的体重。</view>
+    <view class="explanation-divider"/>
+    <view class="explanation-label">每日维持所需 · 约 {{explanation.maintenance}} 千卡</view>
+    <view class="explanation-copy">在基础代谢上计入平时活动和训练水平，用来制定饮食目标。它已包含活动估算，不能再与运动圆环直接相加。</view>
+    <button wx:if="{{explanation.maintenanceDetails.length}}" class="explanation-toggle" data-section="basal" bindtap="toggle" aria-expanded="{{expanded.basal}}">{{expanded.basal?'收起计算过程 −':'查看计算过程 ＋'}}</button>
+    <view wx:if="{{expanded.basal}}" class="explanation-details"><view wx:for="{{explanation.maintenanceDetails}}" wx:key="index" class="explanation-copy">{{item}}</view></view>
+  </view>
+
+  <view class="explanation-card">
+    <view class="explanation-heading">02 · 饮食热量摄入</view>
+    <view class="explanation-number">{{explanation.diet.target}}<text wx:if="{{explanation.diet.target!=='待补充评测'}}">千卡 / 天</text></view>
+    <view class="explanation-label">你的每日摄入目标</view>
+    <view class="explanation-copy">{{explanation.dietMethod}}</view>
+    <view class="explanation-stats"><view>已记录<text>{{explanation.diet.consumed}}{{explanation.diet.consumed==='待确认'?'':' 千卡'}}</text></view><view>{{explanation.diet.label}}<text>{{explanation.diet.remaining}}{{explanation.diet.numeric?' 千卡':''}}</text></view></view>
+    <view class="explanation-formula">餐食摄入 = 照片中各食物的热量之和 × 实际吃下的比例</view>
+    <view class="explanation-copy">照片识别根据食物种类、估算克重、用油和做法估算热量。你核对食物、份量和实际吃下的比例并保存后，才计入当天；建议食谱不算已吃。用油、酱汁或份量不清楚时，需要你进一步核对。</view>
+    <view class="explanation-copy">三餐与加餐一起统计，同一份分析只算一次。尚未记录时显示的 0 仅代表已记录量，不代表实际没有进食。替换或撤销后重新汇总；只有文字、缺少热量或部分食物未量化时，剩余摄入显示待确认。</view>
+    <view class="explanation-formula">还需要吃 = 每日摄入目标 − 已确认摄入；超过目标时显示已超出</view>
+    <button wx:if="{{explanation.dietDetails.length}}" class="explanation-toggle" data-section="diet" bindtap="toggle" aria-expanded="{{expanded.diet}}">{{expanded.diet?'收起目标算法 −':'查看目标算法 ＋'}}</button>
+    <view wx:if="{{expanded.diet}}" class="explanation-details"><view wx:for="{{explanation.dietDetails}}" wx:key="index" class="explanation-copy">{{item}}</view></view>
+  </view>
+
+  <view class="explanation-card movement-explanation">
+    <view class="explanation-heading">03 · 运动消耗</view>
+    <view class="explanation-number">{{explanation.exercise.done}}<text wx:if="{{explanation.exercise.done!=='待确认'}}">千卡</text></view>
+    <view class="explanation-label">{{explanation.future?'未来日期尚未开始':'当天已消耗'}} · 目标 {{explanation.exercise.target}} 千卡</view>
+    <view class="explanation-formula">总消耗 = 日常活动消耗 ＋ 运动训练消耗</view>
+    <view class="explanation-copy">圆环统计活动带来的净消耗，不含基础代谢。大环与两个小环中的大数字是已消耗，上方是各自目标。未来日期的大数字显示为横线，表示尚未开始。</view>
+    <view class="explanation-stats"><view>日常活动<text>{{explanation.exercise.activity.done}} 千卡</text></view><view>运动训练<text>{{explanation.exercise.training.done}} 千卡</text></view></view>
+    <view class="explanation-label">还需消耗 {{explanation.exercise.remaining}} 千卡</view>
+    <view class="explanation-copy">活动剩余与训练剩余分别计算，最低为零，再相加。多走的步数不会抵扣未完成的训练；圆环进度也按两项各自最多完成 100% 后合并。</view>
+
+    <view class="explanation-divider"/>
+    <view class="explanation-label">日常活动 · 从步数估算</view>
+    <view class="explanation-copy">{{explanation.exercise.steps}} / {{explanation.exercise.stepGoal}} 步，对应约 {{explanation.exercise.activity.done}} / {{explanation.exercise.activity.target}} 千卡。先根据身高估算步长，再结合体重、步行距离和固定步速估算消耗。</view>
+    <button class="explanation-toggle" data-section="activity" bindtap="toggle" aria-expanded="{{expanded.activity}}">{{expanded.activity?'收起步行算法 −':'查看步行算法 ＋'}}</button>
+    <view wx:if="{{expanded.activity}}" class="explanation-details"><view wx:for="{{explanation.activityDetails}}" wx:key="index" class="explanation-copy">{{item}}</view></view>
+
+    <view class="explanation-divider"/>
+    <view class="explanation-label">运动训练 · 从计划与记录估算</view>
+    <view class="explanation-copy">{{explanation.exercise.rest?'恢复日训练目标为 0 千卡，不需要记录。':'当天训练目标 '+explanation.exercise.training.target+' 千卡；按实际记录的动作活动时间更新已消耗，未记录的动作不当作已完成。'}}</view>
+    <button class="explanation-toggle" data-section="training" bindtap="toggle" aria-expanded="{{expanded.training}}">{{expanded.training?'收起训练算法 −':'查看训练算法 ＋'}}</button>
+    <view wx:if="{{expanded.training}}" class="explanation-details">
+      <view wx:for="{{explanation.trainingDetails}}" wx:key="index" class="explanation-copy">{{item}}</view>
+      <view wx:if="{{!explanation.legacy}}" wx:for="{{explanation.actions}}" wx:key="id" class="explanation-action"><view>{{item.name}}</view><view class="explanation-copy">目标 {{item.target}} 千卡 · 计划活动 {{item.plannedSeconds}} 秒</view><view class="explanation-copy">{{item.state}} · 估算已消耗 {{item.done}} 千卡</view></view>
+      <view wx:if="{{explanation.actions.length && !explanation.legacy}}" class="explanation-small">单个动作展示值与合计分别取整，可能有少量取整差异。</view>
+    </view>
+  </view>
+  <view class="explanation-footer">尚未同步步数或餐食热量不完整时，显示待同步或待确认。训练已消耗按记录累计；尚未记录时显示 0，不代表实际没有运动。历史日期沿用对应的计划与记录；未来日期仅展示安排，尚未开始。</view>
+</view>

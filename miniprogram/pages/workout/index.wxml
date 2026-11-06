@@ -1,0 +1,30 @@
+<view class="screen" wx:if="{{session}}"><view wx:if="{{vm.config.testCheckout}}" class="notice">测试方案 · 热量与营养数值为估算，请结合实际执行反馈。</view>
+  <view class="eyebrow">第 {{session.day + 1}} 天 · {{session.task.title}}</view>
+  <view class="workout-clock">{{clock}}</view><view class="muted center">已训练 · 完成 {{session.completedSets}} 组</view>
+  <progress class="native-progress" percent="{{progress}}" stroke-width="4" activeColor="#57A885" backgroundColor="#DEE5D9" border-radius="4"/>
+  <view wx:if="{{move}}">
+    <view class="title">{{move.name}}</view><view class="tag">第 {{session.set + 1}} / {{move.sets}} 组 · {{move.reps}} 次</view>
+    <video wx:if="{{move.media}}" id="exercise-video" src="{{move.media}}" controls="true" object-fit="contain" show-center-play-btn="true" binderror="mediaError"/>
+    <view wx:if="{{videoError || !move.media}}" class="status-strip"><icon type="info" size="18" color="#687D6D"/><text>{{vm.config.testCheckout?'联调未接入动作视频。不熟悉动作时请暂停，可仅验证记录流程。':'动作演示暂不可用，请联网后重试。不熟悉动作时先暂停训练。'}}</text></view>
+    <view class="body-copy">{{move.cue}}</view><view class="muted">降低难度：{{move.alternative}}</view>
+    <view wx:if="{{rest > 0}}" class="rest">休息 {{rest}} 秒 · 调整呼吸</view>
+    <view wx:if="{{!feedback}}">
+      <button class="primary" bindtap="next" disabled="{{!session.runningSince || rest > 0}}" hover-class="button-hover">{{rest > 0 ? '休息中' : '完成这一组'}}</button>
+      <button class="secondary" bindtap="toggle" hover-class="button-hover">{{session.runningSince ? '暂停训练' : '继续训练'}}</button>
+      <button class="link" bindtap="end">结束训练或记录不适</button>
+    </view>
+  </view>
+  <view wx:else><icon type="success" size="48" color="#173E32"/><view class="title">今天的练习，<text>{{'\n'}}</text>完成了。</view><view class="muted">可选一个感受，也可以直接保存。</view></view>
+  <form wx:if="{{feedback || !move}}" class="feedback" bindsubmit="save">
+    <view class="section-title">这次感觉怎么样？</view>
+    <radio-group name="level" bindchange="difficulty">
+      <label class="choice"><radio value="easy" color="#173E32" checked="{{level === 'easy'}}"/>轻松</label>
+      <label class="choice"><radio value="okay" color="#173E32" checked="{{level === 'okay'}}"/>刚刚好</label>
+      <label class="choice"><radio value="hard" color="#173E32" checked="{{level === 'hard'}}"/>有些吃力</label>
+    </radio-group>
+    <view class="task"><text class="grow">出现疼痛或不适</text><switch name="discomfort" aria-label="出现疼痛或不适" checked="{{discomfort}}" bindchange="discomfort" color="#173E32"/></view>
+    <view wx:if="{{discomfort}}" class="notice">请停止训练，记录已有进度；如不适持续或加重，请寻求专业帮助。</view>
+    <button class="primary" form-type="submit" loading="{{busy}}" disabled="{{busy}}">{{level === 'unknown' ? '保存训练，跳过反馈' : '保存训练与反馈'}}</button>
+  </form>
+</view>
+<view wx:else class="screen empty"><icon type="info" size="40" color="#687D6D"/><view>没有正在进行的训练</view><navigator class="primary" url="/pages/today/index" open-type="switchTab" hover-class="navigator-hover">回到今日</navigator></view>

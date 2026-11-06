@@ -1,0 +1,46 @@
+<view class="screen">
+  <view class="eyebrow">成长 · 每一点进步都算数</view>
+  <view class="title">看见自己的变化。</view>
+  <view class="hero"><view class="task-title">本周实际记录</view><view class="body-copy">完成训练 {{summary.completed}} 次 · {{summary.recordedDays}} 天有饮食记录 · {{summary.adjustments}} 项当天调整</view><view class="fine">缺少记录不代表没有完成。已有 {{summary.feelingCount}} 次明确训练感受，身体数据可选填。</view></view>
+  <view class="stats"><view><text class="stat-number">{{growth.sessions}}</text><text class="muted">累计完成训练</text></view><view><text class="stat-number">{{growth.nutritionDays}}</text><text class="muted">饮食任务完成天数</text></view></view>
+  <view class="fine">最近记录：{{growth.latest}}</view>
+  <view wx:if="{{!growth.sessions && growth.latest === '暂无记录'}}" class="empty">还没有成长记录。从今天的计划开始，每次记录都会留在这里。<navigator class="secondary" url="/pages/today/index" open-type="switchTab">查看今日安排</navigator></view>
+  <view class="section-title">身体变化<button class="inline" bindtap="toggleRange">{{allMeasurements ? '查看最近四周' : '查看全部记录'}}</button></view>
+  <view class="muted">{{allMeasurements ? '全部身体记录' : '最近 28 天'}} · 数字增减不直接代表进步或退步。</view>
+  <view wx:for="{{growth.trends}}" wx:key="field" class="trend-card">
+    <view class="task-title">{{item.title}}</view>
+    <view wx:if="{{!item.count}}" class="empty">该时段暂无记录，记录后可查看变化。</view>
+    <view wx:else>
+      <view class="trend-value">{{item.latest}} <text class="muted">{{item.unit}}</text></view>
+      <view class="fine">最新：{{item.lastDate}}</view>
+      <view wx:if="{{item.count > 1}}">
+        <view class="muted">起始 {{item.first}} {{item.unit}}（{{item.firstDate}}） · 变化 {{item.change}} {{item.unit}}</view>
+        <view class="fine">范围 {{item.min}} — {{item.max}} {{item.unit}} · 测量点按日期排列</view>
+        <view class="trend-plot" aria-label="{{item.title}}，按日期排列的真实测量点">
+          <view wx:for="{{item.points}}" wx:for-item="point" wx:key="date" class="trend-dot" style="left:{{point.x}}%;top:{{point.y}}%;" aria-label="{{point.date}}：{{point.value}}"/>
+        </view>
+        <view class="trend-axis"><text>{{item.firstDate}}</text><text>{{item.lastDate}}</text></view>
+      </view>
+      <view wx:else class="fine">再记录一次，即可查看变化趋势。</view>
+    </view>
+    <view wx:if="{{item.field === 'waist'}}" class="fine">腰围仅作为体型参考，不代表整体体型变化。</view>
+  </view>
+  <button class="secondary" bindtap="toggleMeasure">{{showMeasure ? '收起身体记录' : '记录身体数据'}}</button>
+<form wx:if="{{showMeasure}}" bindsubmit="measure"><view class="field-label">体重（千克）</view><input type="digit" name="weight" maxlength="6" confirm-type="done" value="{{weight}}" bindinput="weight" placeholder="可留空"/><view class="field-label">腰围（厘米）</view><input type="digit" name="waist" maxlength="6" confirm-type="done" value="{{waist}}" bindinput="waist" placeholder="可留空"/><button class="secondary" form-type="submit" loading="{{busy}}" disabled="{{busy}}">保存测量</button></form>
+  <view class="section-title">训练表现<text class="muted">最近 28 天</text></view>
+  <view class="hero"><view class="task-title">完成 {{growth.training}} 次训练</view><view class="body-copy">实际完成 {{growth.sets}} 组 · 累计 {{growth.minutes}} 分钟</view><view class="muted">包含部分完成和中断训练中已记录的组数和时长。</view><view class="list-row" wx:for="{{growth.feelings}}" wx:key="label"><text>{{item.label}}</text><text>{{item.count}} 次反馈</text></view><view class="fine">以上是训练表现记录，不推断力量提升。</view></view>
+  
+  <view class="section-title">习惯变化<text class="muted">最近四个自然周</text></view>
+  <view wx:for="{{growth.weeks}}" wx:key="from" class="habit-row"><view class="small">{{item.from}} — {{item.to}}</view><view>训练完成 {{item.training}} 次 · 饮食任务 {{item.nutrition}} 天</view><view class="muted">三餐文字记录 {{item.recorded}} 天</view><view class="habit-bars"><view class="habit-training" style="width:{{item.training > 7 ? 100 : item.training / 7 * 100}}%;"/><view class="habit-food" style="width:{{item.nutrition / 7 * 100}}%;"/></view></view>
+  <view class="fine">深色为训练次数（7 次及以上满格），浅色为饮食任务天数。文字记录不等同于任务完成。</view>
+<view wx:if="{{vm.nextAdjustmentConfirmed}}" class="notice">下周安排已采用，今天的计划与历史记录保留。</view><view wx:if="{{vm.isMember && vm.entitlement.memberPlan && !vm.nextAdjustmentConfirmed}}"><view class="section-title">每周复评</view><view class="muted">结合真实执行反馈，下周再调整。身体数据可通过上方入口选填。</view><view wx:for="{{reviewFields}}" wx:key="key" wx:if="{{!knownReview[item.key]}}"><view class="field-label">{{item.title}}</view><radio-group data-key="{{item.key}}" bindchange="reviewChange"><label wx:for="{{item.options}}" wx:for-item="option" wx:key="value" class="choice"><radio value="{{option.value}}" checked="{{review[ item.key ]===option.value}}" color="#173E32"/>{{option.label}}</label></radio-group></view><button class="secondary" bindtap="reviewPlan" disabled="{{busy}}">查看下周调整建议</button><view wx:if="{{vm.proposal}}" class="notice">{{vm.proposal.reason}}<button class="primary" bindtap="confirmPlan" disabled="{{busy}}">采用下周安排</button></view></view>
+  <view class="section-title">历史记录</view>
+  <navigator class="secondary" url="/pages/report/index">查看本轮成长报告</navigator>
+  <button class="secondary" bindtap="toggleHistory">{{showHistory ? '收起历史记录' : '查看训练足迹与身体记录'}}</button>
+  <view wx:if="{{showHistory}}">
+    <view wx:if="{{!growth.history.length}}" class="empty">暂无训练记录。</view>
+    <view wx:for="{{growth.history}}" wx:key="key" class="list-row"><view><view>{{item.value.date}} · {{item.value.status === 'completed' ? '训练完成' : item.value.manual ? '部分完成' : '训练中断'}}</view><view class="muted">{{item.value.completedSets}} 组 · {{item.value.difficulty === 'easy' ? '轻松' : item.value.difficulty === 'okay' ? '刚刚好' : item.value.difficulty === 'hard' ? '吃力' : '未填写感受'}}</view></view><text class="small">{{item.pending ? '待备份' : '已备份'}}</text></view>
+    <view class="field-label">身体记录 · {{allMeasurements ? '全部' : '最近四周'}}</view>
+    <view wx:for="{{growth.measurements}}" wx:key="date" class="list-row"><text>{{item.date}}</text><text>{{item.weight || '—'}} 千克 / {{item.waist || '—'}} 厘米</text></view>
+  </view>
+</view>

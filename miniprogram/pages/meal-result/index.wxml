@@ -1,0 +1,115 @@
+<template name="foodValue">
+  <view class="result-metric">
+    <view class="result-label">{{label}}</view>
+    <text>{{value == null ? '待确认' : value + ' ' + unit}}</text>
+  </view>
+</template>
+
+<view wx:if="{{draft}}" class="result-shell" style="bottom: {{keyboardHeight}}px">
+  <scroll-view class="result-scroll" scroll-y="{{true}}" scroll-into-view="{{scrollTarget}}">
+    <view class="result-content">
+      <image class="result-photo" src="{{draft.src}}" mode="aspectFit" bindtap="previewPhoto" aria-label="查看饮食照片"/>
+      <view wx:if="{{draft.analysis}}" class="result-summary">
+        <label class="result-label" for="meal-title">餐食名称</label>
+        <input id="meal-title" class="result-title" value="{{titleInput}}" bindinput="titleInput" maxlength="80"
+          placeholder="餐食名称" disabled="{{busy || draft.attempt}}" adjust-position="{{false}}"
+          data-anchor="meal-title" bindfocus="fieldFocus" bindkeyboardheightchange="keyboardChange"/>
+        <view class="result-primary-metrics">
+          <view>
+            <view class="result-label">总热量</view>
+            <text class="result-energy {{totals.energyKcal === '待确认' ? 'result-unknown' : ''}}">{{totals.energyKcal}}</text>
+            <text wx:if="{{totals.energyKcal !== '待确认'}}" class="result-unit">千卡</text>
+          </view>
+          <view>
+            <view class="result-label">总克重</view>
+            <text class="result-weight">{{totals.weightGrams}}</text>
+            <text wx:if="{{totals.weightGrams !== '待确认'}}" class="result-unit">克</text>
+          </view>
+        </view>
+        <view class="result-macros">
+          <template wx:for="{{macroMetrics}}" wx:key="key" is="foodValue"
+            data="{{label:item.label,unit:item.unit,value:totals[item.key] === '待确认' ? null : totals[item.key]}}"/>
+        </view>
+        <view class="result-hint">按实际进食比例估算。请核对份量、用油和酱汁。</view>
+      </view>
+
+      <view class="result-section">
+        <view class="result-heading">餐别</view>
+        <view class="result-choices">
+          <button wx:for="{{mealSlots}}" wx:key="slot" class="result-choice {{draft.slot === item.slot ? 'is-selected' : ''}}"
+            data-slot="{{item.slot}}" bindtap="selectSlot" disabled="{{busy || draft.attempt}}">{{item.label}}</button>
+        </view>
+      </view>
+
+      <view class="result-section">
+        <view class="result-heading-row">
+          <view class="result-heading">食物明细</view>
+          <button size="mini" class="result-text-button" bindtap="editFood"
+            disabled="{{busy || draft.attempt || foodEdit || draft.analysis.foods.length >= 12}}">添加食物</button>
+        </view>
+        <view wx:for="{{draft.analysis.foods}}" wx:key="index" wx:for-item="food" wx:for-index="foodIndex" class="result-food">
+          <view class="result-food-heading">
+            <text class="result-food-name">{{food.name}}</text>
+            <button size="mini" class="result-text-button" data-index="{{foodIndex}}" bindtap="editFood" disabled="{{busy || draft.attempt || foodEdit}}">编辑</button>
+            <button size="mini" class="result-text-button" data-index="{{foodIndex}}" bindtap="removeFood" disabled="{{busy || draft.attempt || foodEdit}}">删除</button>
+          </view>
+          <view class="result-food-main">
+            <template is="foodValue" data="{{label:'克重',unit:'克',value:food.weightGrams}}"/>
+            <template is="foodValue" data="{{label:'热量',unit:'千卡',value:food.energyKcal}}"/>
+          </view>
+          <view class="result-macros result-food-macros">
+            <template wx:for="{{macroMetrics}}" wx:key="key" is="foodValue"
+              data="{{label:item.label,unit:item.unit,value:food[item.key]}}"/>
+          </view>
+          <view wx:if="{{food.portion}}" class="result-hint">{{food.portion}}</view>
+        </view>
+
+        <view wx:if="{{foodEdit}}" id="food-editor" class="result-editor">
+          <label class="result-label" for="food-name">食物名称</label>
+          <input id="food-name" value="{{foodEdit.name}}" bindinput="foodNameInput" maxlength="40" placeholder="例如米饭"
+            adjust-position="{{false}}" data-anchor="food-name" bindfocus="fieldFocus" bindkeyboardheightchange="keyboardChange"/>
+          <view class="result-field-grid">
+            <view wx:for="{{metrics}}" wx:key="key">
+              <label class="result-label" for="food-{{item.key}}">{{item.label}}（{{item.unit}}）</label>
+              <input id="food-{{item.key}}" type="digit" value="{{foodEdit.values[item.key]}}" bindinput="foodValueInput"
+                data-key="{{item.key}}" data-anchor="food-{{item.key}}" placeholder="待确认" adjust-position="{{false}}"
+                bindfocus="fieldFocus" bindkeyboardheightchange="keyboardChange"/>
+            </view>
+          </view>
+          <view wx:if="{{foodError}}" class="result-error">{{foodError}}</view>
+          <view class="result-editor-actions">
+            <button class="secondary" bindtap="cancelFood">取消</button>
+            <button class="primary" bindtap="commitFood">确认修改</button>
+          </view>
+        </view>
+
+        <view wx:if="{{!draft.analysis && !foodEdit}}">
+          <view class="result-hint">可添加食物明细，也可以只记录文字。</view>
+          <textarea id="meal-text" class="result-manual" value="{{draft.text}}" bindinput="manualInput" maxlength="1000"
+            placeholder="写下实际吃了什么" disabled="{{busy || draft.attempt}}" adjust-position="{{false}}"
+            data-anchor="meal-text" bindfocus="fieldFocus" bindkeyboardheightchange="keyboardChange"/>
+        </view>
+      </view>
+
+      <view wx:if="{{draft.analysis}}" class="result-section">
+        <view class="result-heading">实际进食比例</view>
+        <view class="result-choices">
+          <button wx:for="{{fractions}}" wx:key="value" class="result-choice {{draft.analysis.consumedFraction === item.value ? 'is-selected' : ''}}"
+            data-value="{{item.value}}" bindtap="selectFraction" disabled="{{busy || draft.attempt}}">{{item.label}}</button>
+        </view>
+      </view>
+      <button class="link result-discard" bindtap="discardPhoto" disabled="{{busy}}">放弃这次记录</button>
+    </view>
+  </scroll-view>
+
+  <view class="result-footer {{keyboardHeight ? 'result-footer-keyboard' : ''}}">
+    <view wx:if="{{saveError}}" class="result-error">{{saveError}}。草稿已保留。</view>
+    <button class="primary" bindtap="savePhoto" loading="{{busy}}"
+      disabled="{{busy || foodEdit || !draft.slot || !draft.text}}">{{draft.attempt ? '重试同步' : '保存'}}</button>
+  </view>
+</view>
+
+<view wx:else class="screen">
+  <view class="notice">{{pageError || '请从饮食记录选择照片。'}}</view>
+  <button class="secondary" bindtap="goBack">返回</button>
+</view>

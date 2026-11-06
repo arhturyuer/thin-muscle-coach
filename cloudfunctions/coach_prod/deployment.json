@@ -1,0 +1,6 @@
+{
+  "name": "coach_prod",
+  "stage": "prod",
+  "entry": "coach",
+  "sourceVersion": "a3ff62d7c3da5233"
+}

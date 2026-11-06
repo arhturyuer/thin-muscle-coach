@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "运动计划详情",
+  "usingComponents": {
+    "week-calendar": "/components/week-calendar/index"
+  }
+}

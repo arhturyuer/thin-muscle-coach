@@ -1,0 +1,16 @@
+<view class="screen">
+  <view class="eyebrow">个人资料</view><view class="title">刚刚好的你，<text>{{'\n'}}</text>由你定义。</view>
+  <form bindsubmit="save">
+    <button wx:if="{{supported}}" class="avatar-picker" open-type="{{devtools ? '' : 'chooseAvatar'}}" bindtap="pickAvatarInDevtools" bindchooseavatar="chooseAvatar" binderror="avatarPickerError" disabled="{{busy}}" hover-class="button-hover" aria-label="选择头像"><view class="edit-avatar"><image class="avatar-image {{avatarFailed || resetAvatar || (!avatarTemp && !vm.profile.avatarFileId) ? 'avatar-default' : ''}}" src="{{avatarFailed ? defaultAvatar : avatarUrl}}" mode="aspectFill" binderror="avatarError"/></view><text>更换头像</text></button>
+    <view wx:else class="notice">请更新微信后修改头像与昵称。你仍可使用已有账号和训练记录。</view>
+    <view wx:if="{{devtools && supported}}" class="fine">开发者工具中可选择本地图片预览，手机微信中使用原生头像选择。</view>
+    <button wx:if="{{supported && (avatarTemp || vm.profile.avatarFileId) && !resetAvatar}}" class="link" bindtap="useDefaultAvatar" disabled="{{busy}}">使用默认头像</button>
+    <label class="field-label" for="nickname-input">昵称</label>
+    <input id="nickname-input" name="nickname" type="nickname" value="{{nickname}}" maxlength="40" confirm-type="done" placeholder="填写你喜欢的昵称" bindinput="nickname" bindblur="nickname" bindnicknamereview="reviewed" disabled="{{busy || !supported}}"/>
+    <view class="fine">1～20 个字符。头像和昵称仅用于你的个人资料，不影响订单和训练记录。</view>
+    <view wx:if="{{review === 'pending'}}" class="status-strip"><icon type="waiting" size="16" color="#687D6D"/><text>正在检查昵称，请稍候</text></view>
+    <view wx:if="{{error}}" class="notice">{{error}}</view>
+    <button class="primary" form-type="submit" loading="{{busy}}" disabled="{{busy || !supported || !dirty}}">保存资料</button>
+    <button class="link" bindtap="cancel" disabled="{{busy}}">取消</button>
+  </form>
+</view>

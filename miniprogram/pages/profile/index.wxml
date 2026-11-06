@@ -1,0 +1,36 @@
+<view class="screen">
+  <navigator class="account-header" url="/pages/profile-edit/index" hover-class="navigator-hover">
+    <view class="account-avatar"><image class="avatar-image {{!vm.profile.avatarFileId || avatarFailed ? 'avatar-default' : ''}}" mode="aspectFill" src="{{avatarFailed ? defaultAvatar : vm.avatarUrl}}" binderror="avatarError"/></view>
+    <view class="grow"><view class="account-name">{{vm.profile.nickname}}</view><view class="muted">编辑头像与昵称</view></view><view class="chevron"/>
+  </navigator>
+  <view class="archive-heading">
+    <view class="archive-title-group">
+      <view class="section-title">身体档案</view>
+      <button wx:if="{{dashboardProfile.available}}" class="archive-toggle" bindtap="toggleArchive" aria-label="{{showArchive ? '收起档案' : '展开全部档案'}}" aria-expanded="{{showArchive}}" hover-class="button-hover"><view class="expand-icon {{showArchive ? 'expanded' : ''}}"><view class="expand-arrow"/></view></button>
+    </view>
+    <navigator class="archive-update" url="/pages/assessment/index?restart=1" hover-class="navigator-hover">更新档案</navigator>
+  </view>
+  <view wx:if="{{dashboardProfile.available}}" class="archive-card">
+    <view class="archive-basics">
+      <view wx:for="{{archiveBasicFields}}" wx:key="label" class="archive-basic"><text class="archive-label">{{item.label}}</text><text class="archive-basic-value">{{item.value}}</text></view>
+    </view>
+    <view wx:for="{{archiveSummaryFields}}" wx:key="label" class="list-row"><text class="archive-label">{{item.label}}</text><text class="archive-value">{{item.value}}</text></view>
+    <view wx:if="{{showArchive}}">
+      <view wx:for="{{dashboardProfile.detailFields}}" wx:key="label" class="list-row"><text class="archive-label">{{item.label}}</text><text class="archive-value">{{item.value}}</text></view>
+      <view wx:if="{{savedPreferences.length}}" class="archive-preferences"><view class="task-title">已记住的偏好</view><view wx:for="{{savedPreferences}}" wx:key="key" class="list-row"><text class="grow">{{item.text}}</text><button class="inline" data-key="{{item.key}}" bindtap="removePreference" disabled="{{busy}}">移除</button></view></view>
+    </view>
+  </view>
+  <view wx:else class="muted">完成评测后，在这里查看身体信息与训练偏好。</view>
+  <view class="section-title">会员服务</view>
+  <view class="notice">{{vm.isMember ? '指导服务有效至 ' + vm.membershipUntil : vm.membershipUntil ? '指导服务已到期' : '尚未开通会员指导'}} · 无自动续费</view>
+  <navigator class="secondary" url="/pages/{{vm.hasPreview ? 'preview' : 'assessment'}}/index">{{vm.isMember || vm.membershipUntil ? '查看套餐与续购' : '了解并开通会员'}}</navigator>
+  <navigator class="list-row" url="/pages/orders/index"><text>我的订单</text><view class="chevron"/></navigator>
+  <view class="section-title">设置与支持</view>
+  <view class="task"><view class="grow"><view class="task-title">训练、饮食与报告提醒</view><view class="muted">每天最多提醒一次，可随时关闭</view></view><switch aria-label="训练、饮食与报告提醒" color="#173E32" checked="{{reminderEnabled}}" disabled="{{busy}}" bindchange="reminder"/></view>
+  <picker mode="time" value="{{vm.reminder.time}}" disabled="{{busy}}" bindchange="time"><view class="list-row"><text>提醒时间</text><view class="cell-value"><text>{{vm.reminder.time}}</text><view class="chevron"/></view></view></picker>
+  <button class="contact" bindtap="notificationSettings" hover-class="navigator-hover"><text>微信通知设置</text><view class="chevron"/></button>
+  <view class="fine">提醒需要微信订阅授权；未授权时仍可在小程序中查看任务。</view>
+  <navigator class="list-row" url="/pages/privacy/index" hover-class="navigator-hover"><text>隐私与数据说明</text><view class="chevron"/></navigator>
+  <button class="contact" open-type="contact" binderror="contactError" show-message-card="true" send-message-title="薄肌教练服务咨询" send-message-path="/pages/profile/index" hover-class="navigator-hover"><text>联系客服</text><view class="chevron"/></button>
+  <view class="footer">薄肌，就是刚刚好。<view class="version">版本 {{version}}</view></view>
+</view>

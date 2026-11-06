@@ -1,0 +1,6 @@
+<template name="workoutCompletionStamp">
+  <view class="workout-completion-stamp">
+    <image class="workout-completion-stamp-art" src="/assets/icons/workout-completed.svg" mode="aspectFit" aria-hidden="true"/>
+    <text class="workout-completion-stamp-label">已完成</text>
+  </view>
+</template>

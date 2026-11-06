@@ -1,0 +1,60 @@
+<import src="/templates/workout-completion-stamp.wxml"/>
+<import src="/templates/energy-ring.wxml"/>
+
+<template name="dietBudget">
+  <view class="diet-budget">
+    <view class="diet-budget-title">{{diet.label}}</view>
+    <view class="diet-macros-caption">已摄入 / 目标</view>
+    <template is="energyRing" data="{{large:true,color:'#326249',track:'#CFD8C9',progress:diet.progress,value:diet.remaining,unknown:!diet.numeric,description:diet.label+' '+diet.remaining+(diet.numeric?' 千卡':'')}}"/>
+    <view class="diet-macros">
+      <view wx:for="{{diet.macros}}" wx:key="key" class="diet-macro">
+        <view class="diet-macro-line"><text class="diet-macro-name">{{item.label}}</text><text class="diet-macro-amount">{{item.consumed}} / {{item.target}}</text></view>
+        <view class="diet-macro-track" aria-hidden="true"><view class="diet-macro-fill diet-nutrient-{{item.key}}" style="width:{{item.progress}}%;"/></view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<template name="dietMealMacros">
+  <view wx:if="{{macros.length}}" class="diet-meal-macros">
+    <text wx:for="{{macros}}" wx:key="key" class="diet-meal-nutrient diet-nutrient-{{item.key}}">{{item.label}} {{item.value}}</text>
+  </view>
+</template>
+
+<template name="dietDay">
+  <template is="dietBudget" data="{{diet}}"/>
+  <view wx:if="{{diet.reason || showCompletion && diet.completed}}" class="diet-day-overview">
+    <view class="diet-day-intro diet-day-title">{{isToday?'今日食谱':'当日食谱'}}{{diet.reason?'：'+diet.reason:''}}</view>
+    <template wx:if="{{showCompletion && diet.completed}}" is="workoutCompletionStamp"/>
+  </view>
+  <view wx:if="{{diet.hint || mealLoadError}}" class="diet-hint">{{mealLoadError || diet.hint}}</view>
+  <view class="diet-meals">
+    <view wx:for="{{diet.rows}}" wx:key="slot" wx:for-item="meal" class="diet-meal" wx:if="{{meal.recorded || meal.foods.length || meal.text}}">
+      <view class="diet-line diet-meal-title"><view>{{meal.label}}<text class="diet-meal-state">{{meal.recorded?'已记录':'食谱'}}</text></view><text>{{meal.energy}}</text></view>
+      <view class="diet-meal-body">
+        <view wx:if="{{meal.recorded && meal.photos.length}}" class="diet-photo" catchtap="previewDietPhoto" data-id="{{meal.photos[0]}}" role="button" aria-label="查看{{meal.label}}照片">
+          <image wx:if="{{dietPhotos[meal.photos[0]]}}" src="{{dietPhotos[meal.photos[0]]}}" mode="aspectFill"/>
+          <text wx:else>查看照片</text><text wx:if="{{meal.photos.length>1}}" class="diet-photo-count">{{meal.photos.length}}</text>
+        </view>
+        <view class="diet-foods">
+          <view wx:for="{{meal.foods}}" wx:key="id" wx:for-item="food" class="diet-food">
+            <view class="diet-line diet-food-line"><view>{{food.name}} <text class="diet-weight">{{food.weight}}</text></view><text>{{food.energy}}</text></view>
+          </view>
+          <view wx:if="{{meal.text}}" class="diet-meal-text">{{meal.text}}</view>
+        </view>
+      </view>
+      <template is="dietMealMacros" data="{{macros:meal.macros}}"/>
+    </view>
+  </view>
+</template>
+
+<template name="dietActions">
+  <button wx:if="{{diet.canConsent}}" class="link" catchtap="openMealConsent">阅读新版评测说明 ›</button>
+  <button wx:if="{{diet.canRetry}}" class="link" catchtap="retryMealWeek" disabled="{{busy}}">{{diet.status==='failed'?'重试生成':'生成本周食谱'}}</button>
+  <view wx:if="{{diet.captureUnavailable}}" class="diet-hint">餐照同步暂未开放，可在饮食详情手动记录。</view>
+  <view wx:if="{{diet.canCapture}}" class="diet-capture-actions">
+    <button class="primary" catchtap="takeDailyPhoto" disabled="{{busy}}">{{hasDraft?'继续确认餐照':'拍照识别'}}</button>
+    <button wx:if="{{!hasDraft}}" class="secondary" catchtap="importDietPhoto" disabled="{{busy}}">相册识别</button>
+  </view>
+  <view wx:if="{{diet.canCapture && !hasDraft}}" class="diet-hint">拍照或选图后，压缩照片会发送给腾讯云 CloudBase AI 分析。</view>
+</template>

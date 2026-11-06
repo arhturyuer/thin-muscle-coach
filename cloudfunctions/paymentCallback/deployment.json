@@ -1,0 +1,6 @@
+{
+  "name": "paymentCallback",
+  "stage": "callback",
+  "entry": "paymentCallback",
+  "sourceVersion": "a3ff62d7c3da5233"
+}

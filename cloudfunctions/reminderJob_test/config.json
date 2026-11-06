@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    {
+      "name": "coach-reminders-test",
+      "type": "timer",
+      "config": "0 */5 * * * * *"
+    }
+  ]
+}

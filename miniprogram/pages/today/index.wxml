@@ -1,0 +1,173 @@
+<import src="/templates/workout-completion-stamp.wxml"/>
+<import src="/templates/meal-plan.wxml"/>
+<import src="/templates/diet-day.wxml"/>
+<import src="/templates/energy-ring.wxml"/>
+<view class="today-navigation" style="padding-top:{{statusBarHeight}}px;">
+  <view class="today-navigation-row" style="height:{{navigationHeight}}px;">
+    <view class="today-navigation-content" style="left:{{calendar && !calendar.isToday && !showGuide ? 12 : navigationSideWidth}}px;right:{{navigationSideWidth}}px;">
+      <button wx:if="{{calendar && !calendar.isToday && !showGuide}}" class="navigation-back-today" hover-class="navigation-back-today-pressed" bindtap="backToday" aria-label="返回今日"><view class="navigation-back-label">回今日</view></button>
+      <view class="today-navigation-title navigation-date-spacer" aria-hidden="true">{{dateTitle}}</view>
+    </view>
+    <view class="today-navigation-title navigation-centered-title" style="left:{{navigationSideWidth}}px;right:{{navigationSideWidth}}px;" role="heading">{{dateTitle}}</view>
+  </view>
+</view>
+<view style="height:{{navigationTotalHeight}}px;" aria-hidden="true"/>
+<view class="screen {{!showGuide ? 'calendar-screen' : ''}}">
+  <view wx:if="{{showGuide}}" class="brand home-tagline">薄肌就是身材刚刚好</view>
+  <view wx:if="{{!vm.online && showGuide}}" class="status-strip"><icon type="info" size="16" color="#687D6D"/><text>当前离线，已保存的计划和记录仍可查看</text></view>
+  <view wx:if="{{showGuide}}">
+    <view class="photo-gallery">
+      <swiper class="photo-swiper" circular="{{true}}" autoplay="{{false}}" indicator-dots="{{true}}" indicator-color="rgba(255,255,255,0.55)" indicator-active-color="#173E32" bindchange="photoChange" aria-label="薄肌生活照片，左右滑动浏览">
+        <swiper-item wx:for="{{photos}}" wx:key="src"><image class="gallery-photo" src="{{item.src}}" mode="aspectFill" lazy-load="{{true}}" aria-label="{{item.alt}}"/></swiper-item>
+      </swiper>
+      <view class="photo-count">{{photoIndex + 1}} / {{photos.length}}</view>
+    </view>
+    <view class="gallery-caption"><text>形象示意 · 身体状态与变化因人而异</text><text>左右滑动</text></view>
+    <view class="section-title">薄肌是什么？</view><view class="body-copy">薄肌，是自然的肌肉线条，也是有力量、能持续的生活状态。</view><view class="body-copy">普通人也能一步步接近。从适合你的吃饭方式和训练节奏开始，让每次努力都有方向。</view>
+    <view class="hero"><view class="task-title">把向往，变成每天能做的事</view><view class="body-copy">怎么吃：按身体基础和饮食习惯安排三餐。<text>{{'\n'}}</text>怎么练：按时间、经验和器械安排训练。<text>{{'\n'}}</text>怎么坚持：每日指导，每周回顾与调整。</view>
+    <view class="guide-anchor"><navigator class="primary guide-action" style="visibility:{{guideDock ? 'hidden' : 'visible'}}" url="/pages/{{vm.hasPreview?'preview':'assessment'}}/index">{{vm.hasPreview?'查看我的方案':vm.hasDraft?'继续评估':'设计我的薄肌计划'}}</navigator></view><view class="fine">免费评估与方案预览 · 指导服务 ¥19 / 月起 · 无自动续费</view></view>
+    <view class="section-title">为什么先了解你？</view><view class="body-copy">同样想拥有薄肌，外卖生活和自己做饭的安排不同，每周能练两天和四天的节奏也不同。你的答案，会成为你的饮食、训练与恢复安排。</view>
+  </view>
+  <view wx:else>
+    <view class="calendar-fixed" style="top:{{navigationTotalHeight}}px;">
+    <week-calendar calendar="{{calendar}}" slot="{{calendarSlot}}" bindselectdate="selectDate" bindweekchange="calendarChange"/>
+    </view>
+    <view class="calendar-spacer" aria-hidden="true"/>
+    <view wx:if="{{vm.config.mealWeeksSupported}}" class="management-card diet-management" bindtap="openNutrition">
+      <view class="management-heading"><view class="management-title">7分吃<text class="management-subtitle">· 饮食管理</text></view><text class="exercise-detail-link">详情 ›</text></view>
+      <template is="dietDay" data="{{diet,dietPhotos,mealLoadError,isToday:calendar.isToday,showCompletion:true}}"/>
+      <template is="dietActions" data="{{diet,busy,hasDraft:vm.mealPhotoDraft}}"/>
+    </view>
+    <view wx:else class="management-card diet-management">
+      <view class="management-heading"><view class="management-title">7分吃<text class="management-subtitle">· 饮食管理</text></view><button class="management-link" bindtap="openNutrition">详情 ›</button></view>
+      <template is="dietBudget" data="{{diet:summary.diet}}"/>
+      <view class="diet-day-overview">
+        <view class="diet-day-intro">
+          <view wx:if="{{daily.mealPlan.reason || summary.diet.completed}}" class="diet-day-title">{{calendar.isToday?'今日食谱':'当日食谱'}}{{daily.mealPlan.reason?'：'+daily.mealPlan.reason:''}}</view>
+          <view class="management-meta">每日目标 {{summary.diet.target}} · 已记录 {{summary.diet.consumed}} 千卡</view>
+          <view class="management-note">{{summary.diet.note}}</view>
+        </view>
+        <template wx:if="{{summary.diet.completed}}" is="workoutCompletionStamp"/>
+      </view>
+      <navigator wx:if="{{!dashboard.intake && calendar.isToday}}" class="management-link" url="/pages/assessment/index">补充目标评测 ›</navigator>
+      <view class="meal-overview">
+        <view wx:for="{{summary.diet.rows}}" wx:key="slot" class="meal-overview-row" bindtap="openNutrition" role="button" aria-label="{{item.label}}：{{item.text}}，查看饮食详情">
+          <view class="meal-slot">{{item.label}}</view><view class="meal-overview-main"><view class="meal-overview-text">{{item.text}}</view><text class="meal-state {{item.recorded?'meal-recorded':''}}">{{item.state}}</text><template is="dietMealMacros" data="{{macros:item.macros}}"/></view><text class="row-chevron">›</text>
+        </view>
+      </view>
+      <view wx:if="{{calendar.isToday && dashboard.executable}}">
+        <view class="daily-actions capture-actions"><button class="primary" bindtap="takeDailyPhoto" disabled="{{busy}}">{{vm.config.mealRecognitionEnabled?'拍照识别':'拍照记录'}}</button><button class="secondary" bindtap="importDietPhoto" disabled="{{busy}}">{{vm.config.mealRecognitionEnabled?'相册识别':'相册导入'}}</button></view>
+        <view wx:if="{{vm.config.mealRecognitionEnabled}}" class="diet-hint">拍照或选图后，压缩照片会发送给腾讯云 CloudBase AI 分析。</view>
+        <button wx:if="{{!daily.mealPlan && dashboard.intake}}" class="link" bindtap="generateNutritionPlan" loading="{{mealPlanLoading}}" disabled="{{mealPlanLoading}}">{{mealPlanLoading?'正在生成三餐食谱…':'生成今日食谱'}}</button>
+        <button wx:elif="{{daily.mealPlan && dashboard.intake}}" class="link" bindtap="regenerateNutritionPlan" loading="{{mealPlanLoading}}" disabled="{{mealPlanLoading}}">{{mealPlanLoading?'正在调整食谱…':'重新生成今日食谱'}}</button>
+      </view>
+      <view wx:if="{{mealPlanError}}" class="notice">{{mealPlanError}}</view>
+      <view wx:if="{{!dashboard.task}}" class="management-empty">
+        <view>{{calendar.isToday ? (vm.isMember ? '准备新一周的安排' : vm.entitlement ? '本轮服务已结束' : '你的方案已准备好') : '这一天暂无已保存的饮食计划'}}</view>
+        <navigator wx:if="{{calendar.isToday}}" class="management-link" url="/pages/{{vm.isMember ? 'plan' : vm.hasPreview ? 'preview' : 'assessment'}}/index">{{vm.isMember ? '查看下一轮计划 ›' : '查看我的方案 ›'}}</navigator>
+      </view>
+    </view>
+
+    <view class="management-card exercise-management" bindtap="openExercise">
+      <view class="management-heading"><view class="management-title">3分练<text class="management-subtitle">· 运动管理</text></view><text class="exercise-detail-link">详情 ›</text></view>
+      <view class="energy-rings">
+        <view class="ring-title ring-total">总消耗</view>
+        <view class="ring-title ring-activity">日常活动</view>
+        <view class="ring-title ring-training">运动训练</view>
+        <view class="ring-visual ring-total"><template is="energyRing" data="{{large:true,target:summary.exercise.target,label:'总消耗',color:'#326249',track:'#CFD8C9',progress:summary.exercise.progress,future:summary.exercise.future,value:summary.exercise.future?summary.exercise.target:summary.exercise.done,unknown:(summary.exercise.future?summary.exercise.target:summary.exercise.done)==='待确认'}}"/></view>
+        <view class="ring-operator ring-equals" aria-hidden="true">＝</view>
+        <view class="ring-visual ring-activity"><template is="energyRing" data="{{target:summary.exercise.activity.target,label:'日常活动',color:'#326249',track:'#CFD8C9',progress:summary.exercise.activity.progress,future:summary.exercise.future,value:summary.exercise.future?summary.exercise.activity.target:summary.exercise.activity.done,unknown:summary.exercise.future?summary.exercise.activity.target==='待确认':summary.exercise.activity.done==='待同步'||summary.exercise.activity.done==='待确认'}}"/></view>
+        <view class="ring-operator ring-plus" aria-hidden="true">＋</view>
+        <view class="ring-visual ring-training"><template is="energyRing" data="{{target:summary.exercise.training.target,label:'运动训练',color:'#8B6345',track:'#DFD3C7',progress:summary.exercise.training.target==='0'?0:summary.exercise.training.progress,future:summary.exercise.future,value:summary.exercise.future?summary.exercise.training.target:summary.exercise.training.done,unknown:(summary.exercise.future?summary.exercise.training.target:summary.exercise.training.done)==='待确认'}}"/></view>
+        <view class="ring-remaining ring-total"><text>{{summary.exercise.future?'尚未开始':summary.exercise.remaining==='待确认'?'待确认':'还需消耗 '+summary.exercise.remaining+' 千卡'}}</text><button class="ring-help" catchtap="openDataExplanation" aria-label="查看数据说明"><image src="/assets/icons/data-help.svg" aria-hidden="true"/></button></view>
+        <view class="ring-remaining ring-activity">{{summary.exercise.future?'尚未开始':summary.exercise.activity.remaining==='待确认'?'待确认':'还需消耗 '+summary.exercise.activity.remaining+' 千卡'}}</view>
+        <view class="ring-remaining ring-training">{{summary.exercise.rest?'恢复日':summary.exercise.future?'尚未开始':summary.exercise.training.remaining==='待确认'?'待确认':'还需消耗 '+summary.exercise.training.remaining+' 千卡'}}</view>
+      </view>
+      <view wx:if="{{workoutLoadError}}" class="notice">{{workoutLoadError}}</view>
+      <view wx:if="{{summary.exercise.hasDay}}" class="exercise-overview">
+        <view class="today-workout-title">{{calendar.isToday?'今日练':'当日练'}}：{{summary.exercise.rest?'轻松恢复日，避免剧烈运动':summary.exercise.title}}</view>
+        <template wx:if="{{calendar.trainingCompleted && !summary.exercise.rest}}" is="workoutCompletionStamp"/>
+        <view wx:if="{{summary.exercise.rest}}" class="body-copy">今日安排休息，进行散步拉伸等轻松活动，睡够8~9小时，促进恢复</view>
+        <view wx:for="{{summary.exercise.rows}}" wx:key="id" class="exercise-overview-row">
+          <view class="exercise-row-heading">
+            <text class="exercise-name">{{item.name}}</text>
+            <text class="exercise-muscles">{{item.muscles}}</text>
+          </view>
+          <view class="exercise-row-heading exercise-prescription">
+            <text>计划 {{item.planned}}</text>
+            <text>{{item.energy==='待确认'?'消耗待确认':'消耗'+item.energy+'千卡'}}</text>
+          </view>
+        </view>
+        <button wx:if="{{workoutView.canRecord && !summary.exercise.rest}}" class="secondary" catchtap="recordWorkout">记录运动</button>
+      </view>
+      <view wx:else class="management-empty">
+        <view>{{workoutView.status==='generating'?'正在生成本周运动方案…':workoutView.status==='failed'?workoutView.message:calendar.isToday&&vm.isMember?'本周运动方案尚未生成':'这一天暂无已保存的运动方案'}}</view>
+        <button wx:if="{{calendar.isToday && vm.isMember && workoutView.status!=='generating'}}" class="secondary" catchtap="retryWorkout">{{workoutView.status==='failed'?'重试生成':'生成本周运动方案'}}</button>
+        <button wx:if="{{calendar.isToday && !vm.isMember}}" class="secondary" data-page="preview" catchtap="go">查看方案与开通</button>
+      </view>
+      <view wx:if="{{workoutView.day && workoutView.status==='failed' && calendar.isToday}}" class="notice">{{workoutView.message}} 已保存的安排仍可查看。<button class="inline" catchtap="retryWorkout">重试生成</button></view>
+      <view class="steps-overview">
+        <view class="steps-heading">日常活动</view>
+        <view class="steps-count">{{summary.exercise.steps}}<text> / {{summary.exercise.stepGoal}} 步</text></view>
+        <view wx:if="{{dashboard.steps.updated || calendar.isToday && dashboard.steps.connected}}" class="steps-sync-row">
+          <text class="steps-sync-time">{{dashboard.steps.updated?'同步于 '+dashboard.steps.updated:'尚未同步'}}</text>
+          <view wx:if="{{calendar.isToday && dashboard.steps.connected}}" catchtap="stopExerciseTap"><button class="steps-sync-button {{dashboard.steps.status==='正在同步微信步数…'?'steps-syncing':''}}" bindtap="syncSteps" aria-label="同步微信步数" disabled="{{dashboard.steps.status==='正在同步微信步数…'}}"><image class="steps-sync-icon" src="/assets/icons/sync.svg" aria-hidden="true"/></button></view>
+        </view>
+        <view wx:if="{{calendar.isToday && dashboard.steps.status}}" class="management-note">{{dashboard.steps.status}}</view>
+        <block wx:if="{{calendar.isToday && !dashboard.steps.connected && !dashboard.steps.platformBlocked}}">
+          <button wx:if="{{dashboard.steps.needsSettings}}" class="management-link steps-permission" open-type="openSetting" bindopensetting="stepsSettingsChanged" catchtap="stopExerciseTap">开启权限</button>
+          <button wx:else class="management-link steps-permission" catchtap="syncSteps">开启权限</button>
+        </block>
+      </view>
+      <button wx:if="{{vm.session}}" class="secondary" catchtap="resumeTraining">继续原计时训练</button>
+    </view>
+    <view wx:if="{{reviewDue && calendar.isToday}}" class="notice">本周回顾已就绪，看看哪些安排更适合你。<button class="inline" bindtap="openReview">查看回顾</button><button class="inline" bindtap="dismissReview">稍后</button></view>
+    <view wx:if="{{!calendar.isToday && calendar.hasRecords}}">
+      <view class="section-title">当日记录</view>
+      <view wx:for="{{calendar.sessions}}" wx:key="index" class="list-row"><view>{{item.status === 'completed' ? '训练完成' : item.manual ? '部分完成' : '训练中断'}}</view><text class="muted">{{item.completedSets}} 组 · {{item.minutes}} 分钟</text></view>
+      <view wx:for="{{calendar.logs}}" wx:key="index" class="hero calendar-empty"><view class="task-title">{{item.nutrition ? '饮食任务已完成' : '饮食已记录'}}</view><view wx:if="{{item.recovery}}" class="muted">已记录恢复</view><view wx:if="{{item.breakfast}}" class="body-copy">早餐：{{item.breakfast}}</view><view wx:if="{{item.lunch}}" class="body-copy">午餐：{{item.lunch}}</view><view wx:if="{{item.dinner}}" class="body-copy">晚餐：{{item.dinner}}</view><view wx:if="{{item.snack}}" class="body-copy">加餐：{{item.snack}}</view></view>
+    </view>
+
+    <view wx:if="{{!vm.online}}" class="status-strip"><icon type="info" size="16" color="#687D6D"/><text>当前离线，已保存的计划和记录仍可查看</text></view>
+    <view wx:if="{{vm.syncError}}" class="status-strip">记录暂未备份，请到“我的”中重试。本机记录仍可查看。</view>
+  </view>
+  <view class="footer">一点力量，一点松弛。<text>{{'\n'}}</text>刚刚好的你，正在发生。</view>
+</view>
+
+<view wx:if="{{showGuide && guideDock}}" class="guide-dock guide-dock-{{guideDock}}" style="{{guideDock === 'top' ? 'top:' + navigationTotalHeight + 'px;' : ''}}"><navigator class="primary guide-action" style="margin-left:{{guideLeft}}px;width:{{guideWidth}}px;" url="/pages/{{vm.hasPreview?'preview':'assessment'}}/index">{{vm.hasPreview?'查看我的方案':vm.hasDraft?'继续评估':'设计我的薄肌计划'}}</navigator></view>
+
+<view wx:if="{{lastSaved && !composerOpen && !photoProgress && calendar.isToday}}" class="daily-save-notice save-notice"><view class="save-notice-content"><text>{{lastSaved.label}}已记录</text><button class="inline" data-key="{{lastSaved.key}}" bindtap="undoActivity" disabled="{{busy}}">撤销</button></view><view class="save-notice-track" aria-hidden="true"><view class="save-notice-progress" style="width:{{saveNoticeProgress}}%;"/></view></view>
+<view wx:if="{{composerOpen && calendar.isToday}}" class="composer-shade">
+  <view class="composer-panel" style="bottom:{{keyboardHeight}}px">
+    <view class="section-title">{{editingKey?'编辑记录':'记录与调整'}}<button class="inline" bindtap="closeComposer" disabled="{{busy}}">收起</button></view>
+    <scroll-view scroll-y="{{true}}" class="composer-results" style="height:{{keyboardHeight?'18vh':'42vh'}}"><view wx:if="{{lastSaved}}" class="save-notice composer-save-notice"><view class="save-notice-content"><text>{{lastSaved.label}}已记录</text><button class="inline" data-key="{{lastSaved.key}}" bindtap="undoActivity" disabled="{{busy}}">撤销</button></view><view class="save-notice-track" aria-hidden="true"><view class="save-notice-progress" style="width:{{saveNoticeProgress}}%;"/></view></view>
+      <view wx:if="{{recordPrompt}}" class="notice">
+        <view>{{recordPrompt.needsSlot?'记在哪一餐？':'这一餐已有记录，如何保存？'}}</view>
+        <view class="body-copy">{{recordPrompt.text}}</view>
+        <view wx:if="{{recordPrompt.old}}" class="muted">原记录：{{recordPrompt.old}}</view>
+        <view wx:if="{{recordPrompt.needsSlot}}" class="meal-tabs"><button wx:for="{{mealSlots}}" wx:key="slot" class="meal-tab" data-slot="{{item.slot}}" bindtap="assignSlot" disabled="{{busy}}">{{item.label}}</button></view>
+        <view wx:else class="daily-actions"><button class="secondary" data-mode="append" bindtap="resolveRecord" disabled="{{busy}}">补充</button><button class="secondary" data-mode="replace" bindtap="resolveRecord" disabled="{{busy}}">替换</button></view>
+        <button class="link" bindtap="cancelRecord">取消未保存部分</button>
+      </view>
+      <view wx:if="{{pendingAdjustment}}" class="notice"><view>要调整哪一餐？</view><view class="meal-tabs"><button wx:for="{{mealSlots}}" wx:key="slot" class="meal-tab" data-slot="{{item.slot}}" bindtap="chooseAdjustmentSlot" disabled="{{busy}}">{{item.label}}</button></view></view>
+      <view wx:if="{{dayProposal}}" class="hero">
+        <view class="task-title">{{dayProposal.target==='workout'?dayProposal.task.title:'今天换一种吃法'}}</view>
+        <view class="body-copy">{{dayProposal.reason}}</view><view class="body-copy">{{dayProposal.text}}</view>
+        <view wx:for="{{dayProposal.task.exercises}}" wx:key="id" class="body-copy">{{item.name}} · {{item.sets}} 组 · 每组 {{item.reps}} 次</view>
+        <view class="fine">仅用于今天，不改变完整周计划。</view>
+        <button class="primary" bindtap="adoptProposal" disabled="{{busy}}">采用这个安排</button>
+        <view class="daily-actions"><button class="link" bindtap="anotherProposal" disabled="{{busy}}">再换一个</button><button class="link" bindtap="dismissProposal">暂不调整</button></view>
+        <button wx:if="{{vm.session}}" class="secondary" bindtap="resumeTraining">去结束当前训练并保存进度</button>
+      </view>
+      <view wx:if="{{preferenceDraft}}" class="notice"><view>记住这个长期偏好？</view><view class="body-copy">{{preferenceDraft}}</view><button class="primary" bindtap="confirmPreference" disabled="{{busy}}">确认保存偏好</button><button class="link" bindtap="dismissProposal">暂不保存</button></view>
+      <view wx:if="{{reply}}" class="body-copy" user-select="{{true}}">{{reply}}</view>
+      <navigator class="link" url="/pages/guidance/index">查看完整教练对话</navigator>
+    </scroll-view>
+    <view wx:if="{{!photoProgress && !recordPrompt && !editingKey && !keyboardHeight}}" class="meal-tabs"><button class="meal-tab" data-type="record" bindtap="quickInput" disabled="{{busy}}">记饮食</button><button class="meal-tab" data-type="time" bindtap="quickInput" disabled="{{busy}}">时间不够</button><button class="meal-tab" data-type="tired" bindtap="quickInput" disabled="{{busy}}">今天很累</button></view>
+    <view wx:if="{{!photoProgress && !recordPrompt}}" class="composer-input-row"><textarea value="{{composerText}}" bindinput="composerInput" placeholder="记一餐，或告诉我今天有什么变化…" maxlength="1000" adjust-position="{{false}}" bindkeyboardheightchange="composerKeyboard" disabled="{{busy}}"/><button class="primary" bindtap="{{editingKey?'saveEdit':'sendDaily'}}" loading="{{busy}}" disabled="{{busy || !composerText}}">{{editingKey?'保存':'发送'}}</button></view>
+    <button wx:if="{{vm.dailyInputPending}}" class="link" bindtap="abandonDaily" disabled="{{busy}}">放弃未处理部分，已保存记录保留</button>
+    <button wx:if="{{vm.dayPending}}" class="secondary" bindtap="retryDayOperation" disabled="{{busy}}">重试上次调整操作</button>
+  </view>
+</view>
+
+<include src="/templates/meal-photo-progress.wxml"/>

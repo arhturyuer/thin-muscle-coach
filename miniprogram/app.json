@@ -1,0 +1,59 @@
+{
+  "pages": [
+    "pages/today/index",
+    "pages/assessment/index",
+    "pages/preview/index",
+    "pages/workout/index",
+    "pages/nutrition/index",
+    "pages/meal-result/index",
+    "pages/progress/index",
+    "pages/report/index",
+    "pages/profile/index",
+    "pages/orders/index",
+    "pages/privacy/index",
+    "pages/profile-edit/index",
+    "pages/plan/index",
+    "pages/guidance/index",
+    "pages/exercise-detail/index",
+    "pages/exercise-record/index",
+    "pages/data-explanation/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "薄肌教练",
+    "navigationBarBackgroundColor": "#F7F8F2",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F7F8F2",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#7B8D81",
+    "selectedColor": "#173E32",
+    "backgroundColor": "#F7F8F2",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/today/index",
+        "text": "今日",
+        "iconPath": "assets/icons/today.png",
+        "selectedIconPath": "assets/icons/today-active.png"
+      },
+      {
+        "pagePath": "pages/progress/index",
+        "text": "成长",
+        "iconPath": "assets/icons/growth.png",
+        "selectedIconPath": "assets/icons/growth-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "assets/icons/profile.png",
+        "selectedIconPath": "assets/icons/profile-active.png"
+      }
+    ],
+    "position": "bottom"
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "__usePrivacyCheck__": true
+}

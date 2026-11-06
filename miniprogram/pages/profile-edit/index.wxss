@@ -1,0 +1,2 @@
+.avatar-picker{background:transparent;color:#173E32;display:flex;flex-direction:column;align-items:center;font-size:26rpx;padding:20rpx 0 30rpx;gap:18rpx}.edit-avatar{width:168rpx;height:168rpx;background:#E7EDDF;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.avatar-picker{width:100%}

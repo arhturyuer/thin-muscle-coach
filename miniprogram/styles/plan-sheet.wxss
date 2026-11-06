@@ -1,0 +1,85 @@
+.workout-detail { padding: 180rpx 28rpx 48rpx; }
+.workout-calendar-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 15;
+  padding: 12rpx 40rpx;
+  background: #F7F8F2;
+  border-bottom: 1rpx solid #DEE5D9;
+}
+
+.workout-clipboard {
+  position: relative;
+  padding: 30rpx 16rpx 16rpx;
+  border: 1rpx solid #A58257;
+  border-radius: 20rpx;
+  background: repeating-linear-gradient(92deg, rgba(100, 68, 33, .07) 0 1rpx, transparent 1rpx 9rpx),
+    linear-gradient(112deg, #D6B587, #BB9466 62%, #CDA978);
+  box-shadow: 0 5rpx 0 #A17C51, 0 14rpx 22rpx rgba(64, 44, 26, .19);
+}
+.workout-clipboard-clip {
+  position: absolute;
+  z-index: 1;
+  top: -7rpx;
+  left: 50%;
+  width: 246rpx;
+  height: 56rpx;
+  transform: translateX(-50%);
+  border: 1rpx solid #625947;
+  border-radius: 13rpx 13rpx 8rpx 8rpx;
+  background: linear-gradient(180deg, #756B58 0%, #FCF7E6 15%, #CBC3AF 29%, #E8E2D4 61%, #A19988 87%, #F9F1DE 100%);
+  box-shadow: 0 5rpx 8rpx rgba(53, 43, 28, .34), inset 0 -2rpx 1rpx #8E816D;
+}
+.workout-clipboard-clip::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -6rpx;
+  width: 30rpx;
+  height: 7rpx;
+  transform: translateX(-50%);
+  border-radius: 8rpx 8rpx 0 0;
+  background: #625947;
+}
+.workout-clipboard-clip::after {
+  content: '';
+  position: absolute;
+  top: 13rpx;
+  right: 20rpx;
+  left: 20rpx;
+  height: 3rpx;
+  border-radius: 3rpx;
+  background: rgba(255, 255, 255, .76);
+}
+.workout-sheet {
+  position: relative;
+  padding: 44rpx 24rpx 30rpx;
+  border: 1rpx solid #E6E1D7;
+  border-radius: 3rpx;
+  background: #FFFEFB;
+  box-shadow: 2rpx 4rpx 8rpx rgba(73, 51, 31, .23);
+}
+.workout-sheet-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14rpx;
+  padding-bottom: 12rpx;
+  border-bottom: 2rpx solid #8C9588;
+  font-size: 24rpx;
+}
+.workout-sheet-name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workout-sheet-date {
+  flex: none;
+  color: #4A6351;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

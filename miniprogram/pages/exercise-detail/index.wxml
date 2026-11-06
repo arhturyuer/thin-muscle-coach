@@ -1,0 +1,57 @@
+<import src="/templates/workout-completion-stamp.wxml"/>
+<view class="workout-calendar-fixed"><week-calendar calendar="{{calendar}}" slot="{{calendarSlot}}" bindselectdate="selectDate" bindweekchange="calendarChange"/></view>
+<view class="screen workout-detail {{workoutView.canRecord && !workoutView.day.rest ? 'workout-with-action' : ''}}">
+  <view class="workout-clipboard">
+    <view class="workout-clipboard-clip" aria-hidden="true"/>
+    <view class="workout-sheet">
+      <view class="workout-sheet-header">
+        <text class="workout-sheet-name">{{vm.profile.nickname}}</text>
+        <text class="workout-sheet-date">{{calendar.selected}} · 运动计划</text>
+      </view>
+      <view wx:if="{{loadError}}" class="notice">{{loadError}}</view>
+      <block wx:if="{{workoutView.day}}">
+        <view class="title">{{workoutView.day.rest?'轻松恢复日，避免剧烈运动':workoutView.day.title}}</view>
+        <template wx:if="{{calendar.trainingCompleted && !workoutView.day.rest}}" is="workoutCompletionStamp"/>
+        <view class="body-copy">{{workoutView.day.rest?'今日安排休息，进行散步拉伸等轻松活动，睡够8~9小时，促进恢复':workoutView.day.reason}}</view>
+        <view class="workout-sheet-metrics">
+          <view class="workout-sheet-metric"><text class="workout-sheet-label">训练时长</text><text>{{workoutView.day.minutes}} 分钟</text></view>
+          <view class="workout-sheet-metric"><text class="workout-sheet-label">预计训练消耗</text><text>{{workoutView.day.energyKcal}} 千卡</text></view>
+        </view>
+        <view class="fine">净活动消耗估算，不含日常步行。</view>
+        <view wx:for="{{workoutView.day.exercises}}" wx:key="id" class="notebook-exercise">
+          <view class="task-title workout-sheet-section">{{item.order}}. {{item.name}}</view>
+          <view class="workout-sheet-instructions">
+            <view class="workout-sheet-prescription">{{item.prescription}}</view>
+            <video wx:if="{{item.video}}" src="{{item.video}}" controls="{{true}}" object-fit="contain"/>
+            <view class="body-copy">{{item.cue}}</view>
+            <view class="fine">{{item.equipment==='band'?'器械：弹力带':'无需器械'}}</view>
+          </view>
+        </view>
+        <view wx:if="{{workoutView.record}}" class="body-copy">{{workoutView.completed?'当日已完成':'已记录部分运动'}} · {{workoutView.record.completedSets}} 组 · {{workoutView.record.seconds}} 秒</view>
+        <view wx:if="{{!calendar.isToday && !calendar.isPast}}" class="notice">未来日期仅可查看计划。</view>
+        <view wx:if="{{workoutView.status==='failed' && calendar.isToday}}" class="notice">{{workoutView.message}} 已保存安排仍可查看。<button class="inline" bindtap="retry">重试生成</button></view>
+      </block>
+      <block wx:elif="{{workoutView.legacy && (calendar.isPast || detail.completed || detail.recoveryDone || !vm.config.workoutPlansSupported)}}">
+        <view class="fine">历史方案 · 保留原始记录</view>
+        <view class="title">{{workoutView.legacy.task.title}}</view>
+        <template wx:if="{{calendar.trainingCompleted && !workoutView.legacy.task.rest}}" is="workoutCompletionStamp"/>
+        <view class="body-copy">{{workoutView.legacy.task.rest?'恢复安排':workoutView.legacy.plan.minutes+' 分钟居家训练'}}</view>
+        <view wx:for="{{workoutView.legacy.task.exercises}}" wx:key="id" class="notebook-exercise">
+          <view class="task-title workout-sheet-section">{{item.name}}</view>
+          <view class="workout-sheet-instructions">
+            <view class="workout-sheet-prescription">{{item.sets}} 组 × {{item.reps}} 次</view>
+            <view class="body-copy">{{item.cue}}</view>
+          </view>
+        </view>
+      </block>
+      <view wx:else class="empty">
+        <view>{{workoutView.status==='generating'?'正在生成本周运动方案…':workoutView.status==='failed'?workoutView.message:'这一天暂无已保存的运动计划'}}</view>
+        <button wx:if="{{calendar.isToday && vm.isMember && workoutView.status!=='generating'}}" class="secondary" bindtap="retry">{{workoutView.status==='failed'?'重试生成':'生成本周方案'}}</button>
+      </view>
+      <button wx:if="{{vm.session}}" class="secondary" bindtap="resumeTraining">继续原计时训练</button>
+    </view>
+  </view>
+</view>
+<view wx:if="{{workoutView.canRecord && !workoutView.day.rest}}" class="workout-action-bar">
+  <button class="primary" bindtap="record">记录运动</button>
+</view>

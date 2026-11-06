@@ -1,0 +1,25 @@
+@import "../../styles/plan-sheet.wxss";
+
+.workout-sheet .workout-completion-stamp { top: 78rpx; right: 18rpx; }
+.workout-sheet .title { font-size: 40rpx; margin: 24rpx 0 16rpx; overflow-wrap: anywhere; }
+.workout-sheet .body-copy { margin: 12rpx 0 20rpx; line-height: 1.7; }
+.workout-sheet-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1rpx solid #BFC7BB;
+}
+.workout-sheet-metric { display: flex; flex-direction: column; padding: 10rpx 14rpx; font-size: 26rpx; }
+.workout-sheet-metric + .workout-sheet-metric { border-left: 1rpx solid #BFC7BB; }
+.workout-sheet-label { color: #4A6351; font-size: 21rpx; }
+.notebook-exercise { margin-top: 20rpx; border: 1rpx solid #BFC7BB; }
+.workout-sheet-section {
+  margin: 0;
+  padding: 10rpx 16rpx;
+  border-bottom: 1rpx solid #BFC7BB;
+  background: #EDF0EA;
+}
+.workout-sheet-instructions { padding: 12rpx 16rpx 16rpx; }
+.workout-sheet-prescription { font-size: 24rpx; font-weight: 600; }
+.workout-sheet-instructions .body-copy { margin-bottom: 0; }
+.workout-sheet-instructions .fine { margin-top: 8rpx; }
+.notebook-exercise video { width: 100%; margin: 8rpx 0; }
